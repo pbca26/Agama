@@ -1,17 +1,18 @@
 <project>
-    <shortName>IguanaApp</shortName>
-    <fullName>iguana</fullName>
-    <version>0.1.4-beta</version>
-    <licenseFile>/Users/satinder/Documents/Github/iguana/LICENSE</licenseFile>
-    <leftImage>/Users/satinder/Documents/Github/iguana/assets/installer_imgs/Iguana_installer_wizard_image.png</leftImage>
-    <logoImage>/Users/satinder/Documents/Github/iguana/assets/installer_imgs/supernet-iguana-logo.png</logoImage>
-    <splashImage>/Users/satinder/Documents/Github/iguana/assets/installer_imgs/Iguana_installer_splash_image.png</splashImage>
+    <shortName>AgamaApp</shortName>
+    <fullName>Agama</fullName>
+    <version>0.1.6.2e-beta</version>
+    <licenseFile>../../LICENSE</licenseFile>
+    <leftImage>../installer_imgs/Agama_installer_wizard_image.png</leftImage>
+    <logoImage>../installer_imgs/supernet-agama-logo.png</logoImage>
+    <splashImage>../installer_imgs/Agama_installer_splash_image.png</splashImage>
     <allowLanguageSelection>1</allowLanguageSelection>
     <componentList>
         <component>
             <name>default</name>
-            <description>Default Component</description>
-            <canBeEdited>1</canBeEdited>
+            <description>${project.shortName}</description>
+            <canBeEdited>0</canBeEdited>
+            <detailedDescription>All application files. Required size: ${project.component(default).requiredSize} KB</detailedDescription>
             <selected>1</selected>
             <show>1</show>
             <folderList>
@@ -40,14 +41,151 @@
                     <platforms>osx</platforms>
                     <distributionFileList>
                         <distributionFile>
-                            <origin>/Users/satinder/Documents/Github/iguana/build/Iguana-darwin-x64/Iguana.app</origin>
+                            <origin>../../build/Agama-darwin-x64/Agama.app</origin>
                         </distributionFile>
                     </distributionFileList>
                 </folder>
             </folderList>
         </component>
     </componentList>
+    <preInstallationActionList>
+        <setInstallerVariable>
+            <name>previous_installation_exists</name>
+            <value>1</value>
+            <ruleList>
+                <fileTest condition="exists" path="/etc/${project.vendor}-${project.shortName}.ini"/>
+            </ruleList>
+        </setInstallerVariable>
+
+        <!-- Retreive values about previous installer so we can uninstall it -->
+        <foreach>
+            <values>version oldVersion installdir oldInstalldir</values>
+            <variables>name variable</variables>
+            <actionList>
+                <setInstallerVariable name="${variable}" value=""/>
+                <iniFileGet>
+                    <file>/etc/${project.vendor}-${project.shortName}.ini</file>
+                    <key>${name}</key>
+                    <section>details</section>
+                    <variable>${variable}</variable>
+                    <ruleList>
+                        <compareValues>
+                            <logic>equals</logic>
+                            <value1>${previous_installation_exists}</value1>
+                            <value2>1</value2>
+                        </compareValues>
+                    </ruleList>
+                </iniFileGet>
+            </actionList>
+            <ruleList>
+                <platformTest negate="1" type="windows"/>
+            </ruleList>
+        </foreach>
+    </preInstallationActionList>
     <readyToInstallActionList>
+        <runProgram>
+            <program>open</program>
+            <programArguments>-W ${oldInstalldir}/Agama.app/${uninstallerName}.app</programArguments>
+            <ruleList>
+                <compareValues>
+                    <logic>equals</logic>
+                    <value1>${previous_installation_exists}</value1>
+                    <value2>1</value2>
+                </compareValues>
+            </ruleList>
+        </runProgram>
+        <deleteFile>
+            <explanation>Deleting user data</explanation>
+            <path>${user_home_directory}/Library/Application Support/Agama</path>
+            <progressText>Deleting user data</progressText>
+            <ruleList>
+                <compareValues>
+                    <logic>equals</logic>
+                    <value1>${previous_installation_exists}</value1>
+                    <value2>1</value2>
+                </compareValues>
+                <compareValues>
+                    <logic>equals</logic>
+                    <value1>${installation_type}</value1>
+                    <value2>uninstall</value2>
+                </compareValues>
+                <compareValues>
+                    <logic>equals</logic>
+                    <value1>${delete_user_data}</value1>
+                    <value2>1</value2>
+                </compareValues>
+            </ruleList>
+        </deleteFile>
+        <deleteFile>
+            <explanation>Deleting user data</explanation>
+            <path>${user_home_directory}/Library/Application Support/iguana</path>
+            <progressText>Deleting user data</progressText>
+            <ruleList>
+                <compareValues>
+                    <logic>equals</logic>
+                    <value1>${previous_installation_exists}</value1>
+                    <value2>1</value2>
+                </compareValues>
+                <compareValues>
+                    <logic>equals</logic>
+                    <value1>${installation_type}</value1>
+                    <value2>uninstall</value2>
+                </compareValues>
+                <compareValues>
+                    <logic>equals</logic>
+                    <value1>${delete_user_data}</value1>
+                    <value2>1</value2>
+                </compareValues>
+            </ruleList>
+        </deleteFile>
+        <deleteFile>
+            <explanation>Deleting ZcashParams</explanation>
+            <path>${user_home_directory}/Library/Application Support/ZcashParams/</path>
+            <progressText>Deleting ZcashParams</progressText>
+            <ruleList>
+                <compareValues>
+                    <logic>equals</logic>
+                    <value1>${previous_installation_exists}</value1>
+                    <value2>1</value2>
+                </compareValues>
+                <compareValues>
+                    <logic>equals</logic>
+                    <value1>${installation_type}</value1>
+                    <value2>uninstall</value2>
+                </compareValues>
+                <compareValues>
+                    <logic>equals</logic>
+                    <value1>${delete_zcash_params}</value1>
+                    <value2>1</value2>
+                </compareValues>
+            </ruleList>
+        </deleteFile>
+        <exit>
+            <explanation>Uninstalled</explanation>
+            <progressText>Uninstalled</progressText>
+            <ruleList>
+                <compareValues>
+                    <logic>equals</logic>
+                    <value1>${previous_installation_exists}</value1>
+                    <value2>1</value2>
+                </compareValues>
+                <compareValues>
+                    <logic>equals</logic>
+                    <value1>${installation_type}</value1>
+                    <value2>uninstall</value2>
+                </compareValues>
+            </ruleList>
+        </exit>
+        <deleteFile>
+            <explanation>Deleting user data</explanation>
+            <path>${user_home_directory}/Library/Application Support/iguana/shepherd</path>
+            <progressText>Deleting user data</progressText>
+        </deleteFile>
+        <deleteFile>
+            <explanation>Deleting user data</explanation>
+            <path>${user_home_directory}/Library/Application Support/iguana/config.json</path>
+            <progressText>Deleting user data</progressText>
+        </deleteFile>
         <createDirectory>
             <abortOnError>0</abortOnError>
             <explanation>Creating ZcashParam directory</explanation>
@@ -100,19 +238,49 @@
                 </fileExists>
             </ruleList>
         </showProgressDialog>
+        <changePermissions>
+            <files>${user_home_directory}/Library/Application Support/ZcashParams</files>
+            <permissions>777</permissions>
+        </changePermissions>
+        <changePermissions>
+            <files>${user_home_directory}/Library/Application Support/ZcashParams/*</files>
+            <permissions>666</permissions>
+        </changePermissions>
     </readyToInstallActionList>
+    <postInstallationActionList>
+        <!-- Store values of current installer in etc folder so we can find for uninstal -->
+        <foreach>
+            <values>version "${project.version}" installdir "${installdir}"</values>
+            <variables>name variable</variables>
+            <actionList>
+                <iniFileSet>
+                    <file>/etc/${project.vendor}-${project.shortName}.ini</file>
+                    <key>${name}</key>
+                    <section>details</section>
+                    <value>${variable}</value>
+                </iniFileSet>
+            </actionList>
+            <ruleList>
+                <platformTest negate="1" type="windows"/>
+            </ruleList>
+        </foreach>
+        <addFilesToUninstaller files="/etc/${project.vendor}-${project.shortName}.ini"/>
+    </postInstallationActionList>
     <compressionAlgorithm>lzham-ultra</compressionAlgorithm>
-    <enableRollback>1</enableRollback>
+    <enableRollback>0</enableRollback>
     <enableSslSupport>1</enableSslSupport>
     <enableTimestamp>1</enableTimestamp>
-    <uninstallerDirectory>${installdir}/Iguana/</uninstallerDirectory>
-    <uninstallerName>Uninstall-Iguana</uninstallerName>
+    <requireInstallationByRootUser>1</requireInstallationByRootUser>
+    <saveRelativePaths>1</saveRelativePaths>
+    <uninstallerDirectory>${installdir}/Agama.app/</uninstallerDirectory>
+    <uninstallerName>Uninstall-Agama</uninstallerName>
     <vendor>SuperNETOrg</vendor>
     <finalPageActionList>
         <runProgram>
             <program>open</program>
-            <programArguments>/Applications/Iguana.app</programArguments>
+            <programArguments>/Applications/Agama.app</programArguments>
             <progressText>Do you want to launch ${project.fullName} now?</progressText>
+            <runAs>$USER</runAs>
         </runProgram>
     </finalPageActionList>
     <parameterList>
@@ -127,7 +295,61 @@
             <mustBeWritable>1</mustBeWritable>
             <mustExist>0</mustExist>
             <width>30</width>
+            <validationActionList>
+                <throwError>
+                    <text>You don't have enough disk space to install the application,
+      please select another installation directory</text>
+                    <ruleList>
+                        <checkFreeDiskSpace>
+                            <logic>less</logic>
+                            <path>${installdir}</path>
+                            <size>${required_diskspace}</size>
+                        </checkFreeDiskSpace>
+                    </ruleList>
+                </throwError>
+            </validationActionList>
         </directoryParameter>
+        <choiceParameterGroup>
+            <name>installation_type</name>
+            <title>Instalation type</title>
+            <description>Existing instalation is detected</description>
+            <explanation>Existing instalation is detected</explanation>
+            <value>uninstall</value>
+            <default>uninstall</default>
+            <parameterList>
+                <parameterGroup>
+                    <name>uninstall</name>
+                    <title>Uninstall</title>
+                    <explanation>Uninstall</explanation>
+                    <value></value>
+                    <default></default>
+                    <parameterList>
+                        <booleanParameter name="delete_user_data" description="Delete user data" displayStyle="checkbox-left">
+                            <explanation></explanation>
+                            <value>0</value>
+                            <default>0</default>
+                        </booleanParameter>
+                        <booleanParameter name="delete_zcash_params" description="Delete Zcash params" displayStyle="checkbox-left">
+                            <explanation></explanation>
+                            <value>0</value>
+                            <default>0</default>
+                        </booleanParameter>
+                    </parameterList>
+                </parameterGroup>
+                <labelParameter name="reinstall" description="Upgrade current version">
+                    <title>Upgrade</title>
+                    <explanation></explanation>
+                    <image></image>
+                </labelParameter>
+            </parameterList>
+            <ruleList>
+                <compareValues>
+                    <logic>equals</logic>
+                    <value1>${previous_installation_exists}</value1>
+                    <value2>1</value2>
+                </compareValues>
+            </ruleList>
+        </choiceParameterGroup>
     </parameterList>
 </project>
 

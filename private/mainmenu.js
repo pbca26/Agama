@@ -1,7 +1,11 @@
-const {Menu} = require('electron'),
-      electron = require('electron'),
-      app = electron.app,
-      {shell} = require('electron');
+const { Menu } = require('electron');
+const electron = require('electron');
+const app = electron.app;
+const { shell } = require('electron');
+const {
+  pathsAgama,
+  pathsDaemons,
+} = require('../routes/api/pathsUtil');
 
 const template = [
   {
@@ -44,7 +48,7 @@ const template = [
         accelerator: 'CmdOrCtrl+R',
         click (item, focusedWindow) {
           if (focusedWindow)
-            focusedWindow.reload()
+            focusedWindow.reload();
         }
       },
       {
@@ -52,7 +56,7 @@ const template = [
         accelerator: process.platform === 'darwin' ? 'Alt+Command+I' : 'Ctrl+Shift+I',
         click (item, focusedWindow) {
           if (focusedWindow)
-            focusedWindow.webContents.toggleDevTools()
+            focusedWindow.webContents.toggleDevTools();
         }
       },
       {
@@ -88,45 +92,52 @@ const template = [
   },
   {
     role: 'help',
-    label: 'Support',
+    label: 'Debug',
     submenu: [
       {
-        label: 'Supernet.org',
-        click () {
-          if (process.platform === 'linux') {
-            require('child_process').exec('xdg-open http://support.supernet.org');
-          } else {
-            shell.openExternal('http://support.supernet.org')
-          }
+        label: 'Reset settings',
+        click (item, focusedWindow) {
+          focusedWindow.resetSettings();
         }
       },
       {
-        label: 'Slack',
-        click () {
-          if (process.platform === 'linux') {
-            require('child_process').exec('xdg-open https://sprnt.slack.com/messages/support');
-          } else {
-            shell.openExternal('https://sprnt.slack.com/messages/support')
-          }
+        label: 'Contact help desk',
+        click (item, focusedWindow) {
+          shell.openExternal('https://support.komodoplatform.com/support/tickets/new');
+        }
+      },
+      // ref: https://github.com/sindresorhus/new-github-issue-url
+      {
+        label: 'Add Github issue',
+        click (item, focusedWindow) {
+          shell.openExternal('https://github.com/komodoplatform/agama/issues/new?body=Please+describe+your+issue+in+details.+Attach+screenshots+if+you+can,+they+help+a+lot.');
         }
       },
       {
-        label: 'Github',
-        click () {
-          if (process.platform === 'linux') {
-            require('child_process').exec('xdg-open https://github.com/SuperNETorg/iguana/issues');
-          } else {
-            shell.openExternal('https://github.com/SuperNETorg/iguana/issues')
-          }
+        label: 'Show Agama data folder',
+        click (item, focusedWindow) {
+          shell.openItem(pathsAgama());
         }
-      }
+      },
+      {
+        label: 'Show Komodo data folder (default)',
+        click (item, focusedWindow) {
+          shell.openItem(pathsDaemons().komodoDir);
+        }
+      },
+      {
+        label: 'Show komodo-cli folder',
+        click (item, focusedWindow) {
+          shell.openItem(pathsDaemons().komodocliDir);
+        }
+      },
     ]
   }
 ]
 
 if (process.platform === 'darwin') {
   const name = app.getName();
-  
+
   template.unshift({
     label: name,
     submenu: [
