@@ -7,7 +7,7 @@ const UTXO_1MONTH_THRESHOLD_SECONDS = 2592000;
 
 module.exports = (api) => {
   api.listunspent = (ecl, address, network, full, verify) => {
-    const _address = ecl.protocolVersion && ecl.protocolVersion === '1.4' ? pubToElectrumScriptHashHex(address, btcnetworks[network.toLowerCase()] || btcnetworks.kmd) : address;
+    const _address = ecl.protocolVersion && Number(ecl.protocolVersion) >= 1.2 ? pubToElectrumScriptHashHex(address, btcnetworks[network.toLowerCase()] || btcnetworks.kmd) : address;
     let _atLeastOneDecodeTxFailed = false;
 
     if (full &&
