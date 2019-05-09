@@ -83,6 +83,7 @@ module.exports = (api) => {
       const _type = req.body.type;
       const _changePin = req.body.changepin;
       const pubkey = req.body.pubkey;
+      const multisig = req.body.multisig;
       
       if ((_type && pinObjSchema[_type]) ||
           _changePin) {
@@ -107,6 +108,10 @@ module.exports = (api) => {
                   pinObjSchema[_type].keys.hasOwnProperty('seed')) {
                 _data = JSON.parse(JSON.stringify(pinObjSchema[_type]));
                 _data.keys.seed = _str;
+              }
+
+              if (multisig) {
+                _data.sigData = multisig;
               }
 
               const fsObj = JSON.stringify(!_changePin ? {
