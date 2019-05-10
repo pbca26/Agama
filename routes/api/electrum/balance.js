@@ -9,7 +9,7 @@ module.exports = (api) => {
       (async function() {
         const network = req.query.network || api.findNetworkObj(req.query.coin);
         const ecl = await api.ecl(network);
-        const _address = ecl.protocolVersion && ecl.protocolVersion === '1.4' ? pubToElectrumScriptHashHex(req.query.address, btcnetworks[network.toLowerCase()] || btcnetworks.kmd) : req.query.address;
+        const _address = ecl.protocolVersion && Number(ecl.protocolVersion) >= 1.2 ? pubToElectrumScriptHashHex(req.query.address, btcnetworks[network.toLowerCase()] || btcnetworks.kmd) : req.query.address;
   
         api.log('electrum getbalance =>', 'spv.getbalance');
         

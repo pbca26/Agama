@@ -69,23 +69,39 @@ module.exports = (api) => {
         let _coinsList = JSON.parse(fs.readFileSync(`${api.agamaDir}/shepherd/coinslist.json`, 'utf8'));
         _coinsList = api.fsCoinsListFilterOutDisabledCoins(_coinsList);
 
+        let isLite = false;
+        let isNative = false;
+
         for (let key in _coinsList) {
-          if (_coinsList[key].mode === 'spv') {
-            const _coin = _coinsList[key].coin.value.split('|')[0];
-
-            api.addElectrumCoin(_coin);
-            api.log(`add spv coin ${_coin} from file`, 'spv.fs.coins');
-          } else if (_coinsList[key].mode === 'eth') {
-            const _coin = _coinsList[key].coin.value === 'ETH' ? 'ETH' : _coinsList[key].coin.value.split('|')[1];
-
-            api.ethAddCoin(_coin);
-            api.log(`add eth coin ${_coin} from file`, 'eth.fs.coins');
-          } else if (_coinsList[key].mode === 'native') {
-            const _coin = _coinsList[key].coin.value.split('|')[0];
-
-            api.log(`add native coin ${_coin} from file`, 'native.fs.coins');
-            api.startKMDNative(_coin);
+          if (_coinsList[key].mode === 'spv' ||
+              _coinsList[key].mode === 'eth') {
+            isLite = true;
+          } else {
+            isNative = true;
           }
+        }
+
+        if ((isLite && !isNative) || (!isLite && isNative)) {
+          for (let key in _coinsList) {
+            if (_coinsList[key].mode === 'spv') {
+              const _coin = _coinsList[key].coin.value.split('|')[0];
+
+              api.addElectrumCoin(_coin);
+              api.log(`add spv coin ${_coin} from file`, 'spv.fs.coins');
+            } else if (_coinsList[key].mode === 'eth') {
+              const _coin = _coinsList[key].coin.value === 'ETH' ? 'ETH' : _coinsList[key].coin.value.split('|')[1];
+
+              api.ethAddCoin(_coin);
+              api.log(`add eth coin ${_coin} from file`, 'eth.fs.coins');
+            } else if (_coinsList[key].mode === 'native') {
+              const _coin = _coinsList[key].coin.value.split('|')[0];
+
+              api.log(`add native coin ${_coin} from file`, 'native.fs.coins');
+              api.startKMDNative(_coin);
+            }
+          }
+        } else {
+          api.log('concurrent native and lite mode coins are not allowed', 'fs.coins');
         }
       }
     } catch (e) {

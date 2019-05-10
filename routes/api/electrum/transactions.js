@@ -39,7 +39,7 @@ module.exports = (api) => {
         const ecl = await api.ecl(network);
         const isKv = config.kv;
         const _maxlength = isKv ? 10 : config.maxlength;
-        const _address = ecl.protocolVersion && ecl.protocolVersion === '1.4' ? pubToElectrumScriptHashHex(config.address, btcnetworks[network.toLowerCase()] || btcnetworks.kmd) : config.address;
+        const _address = ecl.protocolVersion && Number(ecl.protocolVersion) >= 1.2 ? pubToElectrumScriptHashHex(config.address, btcnetworks[network.toLowerCase()] || btcnetworks.kmd) : config.address;
 
         api.log('electrum listtransactions ==>', 'spv.listtransactions');
         ecl.connect();

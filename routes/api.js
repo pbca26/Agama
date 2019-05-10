@@ -37,7 +37,7 @@ api.electrumJSCore = require('./electrumjs/electrumjs.core.js');
 api.electrumJSNetworks = require('./electrumjs/electrumjs.networks.js');
 api.electrumServers = require('./electrumjs/electrumServers.js').electrumServers;
 api.electrumServersFlag = require('./electrumjs/electrumServers.js').electrumServersFlag;
-api.electrumServersV1_4 = {};
+api.electrumServersProtocolVersion = {};
 
 api.CONNECTION_ERROR_OR_INCOMPLETE_DATA = 'connection error or incomplete data';
 
