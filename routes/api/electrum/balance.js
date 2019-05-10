@@ -21,7 +21,7 @@ module.exports = (api) => {
               json.hasOwnProperty('unconfirmed')) {
             if (network === 'komodo' ||
                 network.toLowerCase() === 'kmd') {
-              ecl.blockchainAddressListunspent(req.query.address)
+              ecl.blockchainAddressListunspent(_address)
               .then((utxoList) => {
                 if (utxoList &&
                     utxoList.length) {
