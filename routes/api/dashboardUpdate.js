@@ -1,4 +1,3 @@
-const Promise = require('bluebird');
 const request = require('request');
 const chainParams = require('../chainParams');
 
@@ -101,7 +100,8 @@ module.exports = (api) => {
 
                   if (isNewAddr &&
                       (allAddrArray[a].substring(0, 2) === 'zc' ||
-                      allAddrArray[a].substring(0, 2) === 'zt')) {
+                      allAddrArray[a].substring(0, 2) === 'zt' ||
+                      allAddrArray[a].substring(0, 15) === 'zregtestsapling')) {
                     result[1][result[1].length] = allAddrArray[a];
                   } else {
                     result[0][result[0].length] = allAddrArray[a];

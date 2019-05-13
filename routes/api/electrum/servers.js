@@ -1,7 +1,6 @@
 const fs = require('fs-extra');
 const _fs = require('graceful-fs');
 const fsnode = require('fs');
-const Promise = require('bluebird');
 const deepmerge = require('../deepmerge.js');
 
 // map coin names to tickers
@@ -91,7 +90,7 @@ module.exports = (api) => {
       list = api.electrumServers;
     }
 
-    _fs.access(api.agamaDir, api.fs.constants.R_OK, (err) => {
+    _fs.access(api.agamaDir, fs.constants.R_OK, (err) => {
       if (!err) {
         const FixFilePermissions = () => {
           return new Promise((resolve, reject) => {

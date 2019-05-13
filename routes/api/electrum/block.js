@@ -1,5 +1,3 @@
-const Promise = require('bluebird');
-
 module.exports = (api) => {
   api.get('/electrum/getblockinfo', (req, res, next) => {
     if (api.checkToken(req.query.token)) {
@@ -24,17 +22,19 @@ module.exports = (api) => {
 
   api.electrumGetBlockInfo = (height, network) => {
     return new Promise((resolve, reject) => {
-      const ecl = api.ecl(network);
+      (async function() {
+        const ecl = await api.ecl(network);
 
-      ecl.connect();
-      ecl.blockchainBlockGetHeader(height)
-      .then((json) => {
-        ecl.close();
-        api.log('electrum getblockinfo ==>', 'spv.getblockinfo');
-        api.log(json, 'spv.getblockinfo');
+        ecl.connect();
+        ecl.blockchainBlockGetHeader(height)
+        .then((json) => {
+          ecl.close();
+          api.log('electrum getblockinfo ==>', 'spv.getblockinfo');
+          api.log(json, 'spv.getblockinfo');
 
-        resolve(json);
-      });
+          resolve(json);
+        });
+      })();
     });
   }
 
@@ -61,22 +61,29 @@ module.exports = (api) => {
 
   api.electrumGetCurrentBlock = (network) => {
     return new Promise((resolve, reject) => {
-      const ecl = api.ecl(network);
+      (async function() {
+        const ecl = await api.ecl(network);
 
-      ecl.connect();
-      ecl.blockchainHeadersSubscribe()
-      .then((json) => {
-        ecl.close();
+        ecl.connect();
+        ecl.blockchainHeadersSubscribe()
+        .then((json) => {
+          ecl.close();
 
-        api.log('electrum currentblock (electrum >= v1.1) ==>', 'spv.currentblock');
-        api.log(json, 'spv.currentblock');
+          api.log('electrum currentblock (electrum >= v1.1) ==>', 'spv.currentblock');
+          api.log(json, 'spv.currentblock');
 
-        if (json.block_height) {
-          resolve(json.block_height);
-        } else {
-          resolve(json);
-        }
-      });
+          if (json &&
+              json.hasOwnProperty('block_height')) {
+            resolve(json.block_height);
+          } else if (
+            json &&
+            json.hasOwnProperty('height')) {
+            resolve(json.height);  
+          } else {
+            resolve(json);
+          }
+        });
+      })();
     });
   }
 

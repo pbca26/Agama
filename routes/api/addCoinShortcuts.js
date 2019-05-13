@@ -22,6 +22,25 @@ module.exports = (api) => {
   api.startKMDNative = (selection, isManual) => {
     let herdData;
 
+    const prepAcOptions = (srcObj, acName) => {
+      for (let key in chainParams[acName]) {
+        if (key === 'addnode' &&
+            typeof chainParams[acName][key] === 'object') {
+          for (let i = 0; i < chainParams[acName][key].length; i++) {
+            herdData.ac_options.push(`-addnode=${chainParams[acName][key][i]}`);
+          }
+        } else {
+          herdData.ac_options.push(`-${key}=${chainParams[acName][key]}`);
+        }
+      }
+    
+      if (!chainParams[acName].addnode) {
+        srcObj.ac_options.push('-addnode=78.47.196.146');
+      }
+
+      return srcObj;
+    };
+
     const httpRequest = () => {
       const options = {
         url: `http://127.0.0.1:${api.appConfig.agamaPort}/api/herd`,
@@ -56,22 +75,17 @@ module.exports = (api) => {
 
       httpRequest();
     } else if (
-      selection === 'REVS' ||
-      selection === 'JUMRLR' ||
-      selection === 'MNZ' ||
-      selection === 'BTCH' ||
-      selection === 'BNTN'
+      selection !== 'KMD' &&
+      chainParams[selection]
     ) {
       herdData = {
         ac_name: selection,
         ac_options: [
           '-daemon=0',
           '-server',
-          `-ac_name=${selection}`,
-          `-addnode=${chainParams[selection].addnone}`,
-          `-addnode=${chainParams[selection].ac_supply}`,
         ],
       };
+      herdData = prepAcOptions(herdData, selection);
 
       httpRequest();
     } else {
@@ -86,21 +100,18 @@ module.exports = (api) => {
         ac_options: [
           '-daemon=0',
           '-server',
-          `-ac_name=REVS`,
-          `-addnode=${chainParams.REVS.addnone}`,
-          `-addnode=${chainParams.REVS.ac_supply}`,
         ],
       }, {
         ac_name: 'JUMBLR',
         ac_options: [
           '-daemon=0',
           '-server',
-          `-ac_name=JUMBLR`,
-          `-addnode=${chainParams.JUMBLR.addnone}`,
-          `-addnode=${chainParams.JUMBLR.ac_supply}`,
         ],
       }];
 
+      herdData[1] = prepAcOptions(herdData[1], 'REVS');
+      herdData[2] = prepAcOptions(herdData[1], 'JUMBLR');
+      
       for (let i = 0; i < herdData.length; i++) {
         setTimeout(() => {
           const options = {

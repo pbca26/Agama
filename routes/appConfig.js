@@ -12,6 +12,7 @@ const appConfig = {
     debug: false,
     roundValues: false,
     experimentalFeatures: false,
+    notifications: false,
     dex: {
       walletUnlockTimeout: 3600,
     },
@@ -42,8 +43,13 @@ const appConfig = {
       zlistreceivedbyaddress: false,
       zgetoperationresult: false,
       zshieldcoinbase: false,
+      detectDaemons: false,
     },
     pubkey: '',
+    exchanges: {
+      coinswitchKey: '',
+    },
+    userAgreement: false,
     // coinControl: false,
     // darkmode: false,
   },
@@ -95,9 +101,15 @@ const appConfig = {
       type: 'boolean',
     },
     experimentalFeatures: {
-      display: true,
+      display: false,
       initDisplay: true,
       displayName: 'Enable advanced features',
+      type: 'boolean',
+    },
+    notifications: {
+      display: true,
+      initDisplay: true,
+      displayName: 'Enable notifications',
       type: 'boolean',
     },
     dex: {
@@ -259,12 +271,34 @@ const appConfig = {
         info: 'A handy option if you\'re mining.',
         type: 'boolean',
       },
+      detectDaemons: {
+        display: true,
+        displayName: 'Enable "Detect native daemons" button',
+        info: 'A handy option if want to start KMD/asset chain native with your set of params or run it in background.',
+        type: 'boolean',
+      },
     },
     pubkey: {
       display: true,
       displayName: 'Pubkey',
       info: 'Append pubkey (-pubkey) to daemon launch params list',
       type: 'string',
+    },
+    exchanges: {
+      display: false,
+      displayName: 'Exchanges',
+      coinswitchKey: {
+        display: true,
+        displayName: 'Coinswitch API key',
+        info: 'Your personal Coinswitch API key',
+        type: 'string',
+      },
+    },
+    userAgreement: {
+      display: false,
+      displayName: 'User agreement',
+      info: 'User agreement',
+      type: 'boolean',
     },
     /*coinControl: {
       display: true,

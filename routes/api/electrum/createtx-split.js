@@ -1,7 +1,9 @@
 const bitcoinJS = require('bitcoinjs-lib');
 const bitcoinJSForks = require('bitcoinforksjs-lib');
-const bitcoinZcash = require('bitgo-utxo-lib');
+const bitcoinZcash = require('bitcoinjs-lib-zcash');
+const bitcoinZcashSapling = require('bitgo-utxo-lib');
 const bitcoinPos = require('bitcoinjs-lib-pos');
+const bitcoinjsNetworks = require('agama-wallet-lib/src/bitcoinjs-networks');
 
 // merge into agama-wallet-lib
 
@@ -12,23 +14,28 @@ module.exports = (api) => {
       const wif = req.body.payload.wif;
       const utxo = req.body.payload.utxo;
       const targets = req.body.payload.targets;
-      const network = req.body.payload.network.toLowerCase();
       const change = req.body.payload.change;
       const outputAddress = req.body.payload.outputAddress;
-      const changeAddress = req.body.payload.changeAddress;
+      const changeAddress = req.body.payload.changeAddress;      
+      const network = bitcoinjsNetworks[req.body.payload.network.toLowerCase()] || bitcoinjsNetworks.kmd;
 
-      let key = api.isZcash(network) ? bitcoinZcash.ECPair.fromWIF(wif, api.getNetworkData(network)) : bitcoinJS.ECPair.fromWIF(wif, api.getNetworkData(network));
+      let key = network && network.isZcash ? bitcoinZcash.ECPair.fromWIF(wif, network) : bitcoinJS.ECPair.fromWIF(wif, network);
       let tx;
 
-      console.log(key.toWIF());
-
-      if (api.isZcash(network) &&
-          api.getNetworkData(network).overwinter) {
-        tx = new bitcoinZcash.TransactionBuilder(api.getNetworkData(network));
+      if (network.isZcash &&
+          !network.sapling) {
+        tx = new bitcoinZcash.TransactionBuilder(network);
+      } else if (
+        network.isZcash &&
+        network.sapling &&
+        ((network.saplingActivationTimestamp && Math.floor(Date.now() / 1000) > network.saplingActivationTimestamp) ||
+        (network.saplingActivationHeight && utxo[0].currentHeight > network.saplingActivationHeight))
+      ) {    
+        tx = new bitcoinZcashSapling.TransactionBuilder(network);
       } else if (api.isPos(network)) {
-        tx = new bitcoinPos.TransactionBuilder(api.getNetworkData(network));
+        tx = new bitcoinPos.TransactionBuilder(network);
       } else {
-        tx = new bitcoinJS.TransactionBuilder(api.getNetworkData(network));
+        tx = new bitcoinJS.TransactionBuilder(network);
       }
 
       api.log('buildSignedTx', 'spv.createrawtx');
@@ -39,11 +46,12 @@ module.exports = (api) => {
       }
 
       for (let i = 0; i < targets.length; i++) {
-        if (api.isPos(network)) {
+        if (network &&
+            network.isPos) {
           tx.addOutput(
             outputAddress,
             Number(targets[i]),
-            api.getNetworkData(network)
+            network
           );
         } else {
           tx.addOutput(outputAddress, Number(targets[i]));
@@ -51,56 +59,61 @@ module.exports = (api) => {
       }
       
       if (Number(change) > 0) {
-        if (api.isPos(network)) {
+        if (network &&
+            network.isPos) {
           tx.addOutput(
             changeAddress,
             Number(change),
-            api.getNetworkData(network)
+            network
           );
         } else {
           api.log(`change ${change}`, 'spv.createrawtx');
           tx.addOutput(changeAddress, Number(change));
         }
       }
-      
-      if (network === 'komodo' ||
-          network === 'KMD') {
-        const _locktime = Math.floor(Date.now() / 1000) - 777;
-        tx.setLockTime(_locktime);
-        api.log(`kmd tx locktime set to ${_locktime}`, 'spv.createrawtx');
-      }
 
-      let versionNum;
-      if ((utxo[0].currentHeight >= 419200 && network === 'zec') || 
-          (utxo[0].currentHeight >= 227520 && network === 'vrsc')){
-        versionNum = 4;
-      } else {
-        if (network === 'zec') {
-          versionNum = 3;
+      if (network.forkName &&
+          network.forkName === 'btg') {
+        tx.enableBitcoinGold(true);
+        tx.setVersion(2);
+      } else if (
+        network.forkName &&
+        network.forkName === 'bch'
+      ) {
+        tx.enableBitcoinCash(true);
+        tx.setVersion(2);
+      } else if (network.sapling) {
+        let versionNum;
+
+        if ((network.saplingActivationHeight && utxo[0].currentHeight >= network.saplingActivationHeight) ||
+            (network.saplingActivationTimestamp && Math.floor(Date.now() / 1000) > network.saplingActivationTimestamp)) {
+          versionNum = 4;
         } else {
           versionNum = 1;
         }
+      
+        if (versionNum) {
+          tx.setVersion(versionNum);
+        }
       }
-  
-      if (versionNum) {
-        tx.setVersion(versionNum);
+
+      if (network.kmdInterest) {
+        const _locktime = Math.floor(Date.now() / 1000) - 777;
+        tx.setLockTime(_locktime);
       }
-      api.log('version set');
       
       for (let i = 0; i < utxo.length; i++) {
-        if (api.isPos(network)) {
-          tx.sign(
-            api.getNetworkData(network),
-            i,
-            key
-          );
+        if (network.isPoS) {
+          tx.sign(network, i, key);
+        } else if (network.isBtcFork) {
+          const hashType = bitcoinJSForks.Transaction.SIGHASH_ALL | bitcoinJSForks.Transaction.SIGHASH_BITCOINCASHBIP143;
+          tx.sign(i, btcFork.keyPair, null, hashType, utxo[i].value);
+        } else if (
+          (network.sapling && network.saplingActivationTimestamp && Math.floor(Date.now() / 1000) > network.saplingActivationTimestamp) ||
+          (network.sapling && network.saplingActivationHeight && utxo[0].currentHeight >= network.saplingActivationHeight)) {
+          tx.sign(i, key, '', null, utxo[i].value);
         } else {
-          if (network === 'zec' ||
-              network === 'vrsc') {
-            tx.sign(i, key, '', null, utxo[i].value || utxo[i].amountSats);
-          } else {
-            tx.sign(i, key);
-          }
+          tx.sign(i, key);
         }
       }
 

@@ -18,23 +18,12 @@ api.appRuntimeLog = [];
 api.lockDownAddCoin = false;
 api._isWatchOnly = false;
 
-api.staking = {};
-
-// dex cache
-api.mmupass = null;
-api.mmRatesInterval = null;
-api.mmPublic = {
-  coins: [],
-  mmupass: null,
-  swaps: [],
-  bids: [],
-  asks: [],
-  isAuth: false,
-  rates: {},
-  prices: [],
-  coinsHelper: {},
-  stats: [],
-  electrumServersList: {},
+// pin acces v2
+api.wallet = {
+  fname: null,
+  pin: null,
+  type: null,
+  data: null,
 };
 
 // spv vars and libs
@@ -46,12 +35,9 @@ api.electrumCache = {};
 
 api.electrumJSCore = require('./electrumjs/electrumjs.core.js');
 api.electrumJSNetworks = require('./electrumjs/electrumjs.networks.js');
-const {
-  electrumServers,
-  electrumServersFlag,
-} = require('./electrumjs/electrumServers.js');
-api.electrumServers = electrumServers;
-api.electrumServersFlag = electrumServersFlag;
+api.electrumServers = require('./electrumjs/electrumServers.js').electrumServers;
+api.electrumServersFlag = require('./electrumjs/electrumServers.js').electrumServersFlag;
+api.electrumServersProtocolVersion = {};
 
 api.CONNECTION_ERROR_OR_INCOMPLETE_DATA = 'connection error or incomplete data';
 
@@ -101,13 +87,6 @@ api = require('./api/electrum/cache.js')(api);
 api = require('./api/electrum/proxy.js')(api);
 api = require('./api/electrum/servers.js')(api);
 api = require('./api/electrum/csv.js')(api);
-api = require('./api/electrum/utils.js')(api);
-
-// dex
-/*api = require('./api/dex/coind.js')(api);
-api = require('./api/dex/mmControl.js')(api);
-api = require('./api/dex/mmRequest.js')(api);
-api = require('./api/dex/electrumServersList.js')(api);*/
 
 // core
 api = require('./api/addCoinShortcuts.js')(api);
@@ -131,7 +110,6 @@ api = require('./api/auth.js')(api);
 api = require('./api/coins.js')(api);
 api = require('./api/coindWalletKeys.js')(api);
 api = require('./api/addressBook.js')(api);
-api = require('./api/dice.js')(api);
 
 // elections
 api = require('./api/elections.js')(api);
@@ -160,9 +138,14 @@ api = require('./api/eth/gasPrice.js')(api);
 api = require('./api/eth/createtx.js')(api);
 api = require('./api/eth/utils.js')(api);
 
-// Allow the API to get the app session token. Disable this functionality by commenting out the following line if you have security concerns in your server
-// api = require('./api/token.js')(api);
-// api = require('./api/walletlib.js')(api);
+// exchanges
+api.exchangesCache = {
+  coinswitch: {},
+};
+api = require('./api/exchange/exchange')(api);
+api = require('./api/exchange/coinswitch/coinswitch')(api);
+api = require('./api/exchange/changelly/changelly')(api);
+api.loadLocalExchangesCache();
 
 api.printDirs();
 
@@ -181,8 +164,8 @@ api.setVar = (_name, _body) => {
 };
 
 // spv
-if (api.appConfig.spv &&
-    api.appConfig.spv.cache) {
+if (((api.appConfig.dev || process.argv.indexOf('devmode') > -1) && api.appConfig.spv.cache) ||
+    (!api.appConfig.dev && process.argv.indexOf('devmode') === -1)) {
   api.loadLocalSPVCache();
 }
 

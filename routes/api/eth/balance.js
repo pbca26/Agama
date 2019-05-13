@@ -1,5 +1,4 @@
 const ethers = require('ethers');
-const Promise = require('bluebird');
 const request = require('request');
 const erc20ContractId = require('agama-wallet-lib/src/eth-erc20-contract-id');
 const decimals = require('agama-wallet-lib/src/eth-erc20-decimals');

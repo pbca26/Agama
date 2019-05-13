@@ -1,10 +1,7 @@
 const { isKomodoCoin } = require('agama-wallet-lib/src/coin-helpers');
-
-const txDecoder = {
-  default: require('../../electrumjs/electrumjs.txdecoder.js'),
-  zcash: require('../../electrumjs/electrumjs.txdecoder-2bytes.js'),
-  pos: require('../../electrumjs/electrumjs.txdecoder-pos.js'),
-};
+const _txDecoder = require('agama-wallet-lib/src/transaction-decoder');
+const semverCmp = require('semver-compare');
+const electrumMinVersionProtocolV1_4 = '1.9.0';
 
 module.exports = (api) => {
   api.isZcash = (network) => {
@@ -26,29 +23,22 @@ module.exports = (api) => {
   };
 
   api.electrumJSTxDecoder = (rawtx, networkName, network, insight) => {
-    if (api.isZcash(networkName) &&
-        network.overwinter) {
-      return txDecoder.zcash(rawtx, network);
-    } else if (api.isPos(networkName)) {
-      return txDecoder.pos(rawtx, network);
-    } else if (insight) {
-      console.log('insight decoder');
-    } else {
-      return txDecoder.default(rawtx, network);
-    }
+    try { 
+      return _txDecoder(rawtx, network);
+    } catch (e) {};
   };
 
   api.getNetworkData = (network) => {
+    if (api.electrumJSNetworks[network.toLowerCase()]) {
+      return api.electrumJSNetworks[network.toLowerCase()];
+    }
+  
     let coin = api.findNetworkObj(network) || api.findNetworkObj(network.toUpperCase()) || api.findNetworkObj(network.toLowerCase());
     const coinUC = coin ? coin.toUpperCase() : null;
 
     if (!coin &&
         !coinUC) {
       coin = network.toUpperCase();
-    }
-
-    if (network.toLowerCase() === 'vrsc') {
-      return api.electrumJSNetworks.vrsc;
     }
 
     if (isKomodoCoin(coin) ||
@@ -141,63 +131,130 @@ module.exports = (api) => {
     }
   });
 
-  api.get('/electrum/servers/test', (req, res, next) => {
-    if (api.checkToken(req.query.token)) {
-      const ecl = api.ecl(null, {
-        port: req.query.port,
-        ip: req.query.address,
-        proto: req.query.proto,
-      });
+  api.getServerVersion = (port, ip, proto) => {
+    const ecl = new api.electrumJSCore(
+      port,
+      ip,
+      proto,
+      api.appConfig.spv.socketTimeout
+    );
 
-      ecl.connect();
-      ecl.serverVersion()
-      .then((serverData) => {
-        ecl.close();
-        api.log('serverData', 'spv.server.test');
-        api.log(serverData, 'spv.server,test');
+    return new Promise((resolve, reject) => {
+      if (api.electrumServersProtocolVersion.hasOwnProperty(`${ip}:${port}:${proto}`)) {
+        api.log(`getServerVersion cached ${`${ip}:${port}:${proto}`} protocol version: ${api.electrumServersProtocolVersion[`${ip}:${port}:${proto}`]}`, 'electrum.version.check');
+        resolve(api.electrumServersProtocolVersion[`${ip}:${port}:${proto}`]);
+      } else {
+        ecl.connect();
+        ecl.serverVersion()
+        .then((serverData) => {
+          let serverVersion = 0;
 
-        if (serverData &&
-            typeof serverData === 'string' &&
-            serverData.indexOf('Electrum') > -1) {
-          const retObj = {
-            msg: 'success',
-            result: true,
-          };
+          ecl.close();
+          api.log('getServerVersion non-cached', 'electrum.version.check');
 
-          res.end(JSON.stringify(retObj));
-        } else if (
-          serverData &&
-          typeof serverData === 'object'
-        ) {
-          for (let i = 0; i < serverData.length; i++) {
-            if (serverData[i].indexOf('Electrum') > -1) {
-              const retObj = {
-                msg: 'success',
-                result: true,
-              };
+          if (serverData &&
+              typeof serverData === 'string' &&
+              serverData.indexOf('ElectrumX') > -1) {
+            serverVersion = serverData.split('ElectrumX')[1].trim();
 
-              res.end(JSON.stringify(retObj));
+            if (serverVersion) {
+              api.log(`${serverVersion} vs ${electrumMinVersionProtocolV1_4} ${(semverCmp(serverVersion, electrumMinVersionProtocolV1_4) >=0 ? '1.4' : '< 1.4')}`, 'electrum.version.check');
+              
+              if (semverCmp(serverVersion, electrumMinVersionProtocolV1_4) >= 0) {
+                api.electrumServersProtocolVersion[`${ip}:${port}:${proto}`] = 1.4;
+              } else {
+                api.electrumServersProtocolVersion[`${ip}:${port}:${proto}`] = 1.0;
+              }
+            }
+          } else if (
+            serverData &&
+            typeof serverData === 'object' &&
+            serverData[0] &&
+            serverData[0].indexOf('ElectrumX') > -1 &&
+            Number(serverData[1])
+          ) {
+            serverVersion = Number(serverData[1]);
 
-              break;
-              return true;
+            if (serverVersion) {
+              api.log(`protocol v${serverVersion}`, 'electrum.version.check');
+              
+              api.electrumServersProtocolVersion[`${ip}:${port}:${proto}`] = Number(serverData[1]);
             }
           }
 
-          const retObj = {
-            msg: 'error',
-            result: false,
-          };
+          api.log(`getServerVersion cached ${`${ip}:${port}:${proto}`} protocol version: ${api.electrumServersProtocolVersion[`${ip}:${port}:${proto}`]}`, 'electrum.version.check');
+          resolve(api.electrumServersProtocolVersion[`${ip}:${port}:${proto}`]);
+        });
+      }
+    });
+  };
 
-          res.end(JSON.stringify(retObj));
-        } else {
-          const retObj = {
-            msg: 'error',
-            result: false,
-          };
+  api.get('/electrum/servers/test', (req, res, next) => {
+    if (api.checkToken(req.query.token)) {
+      api.getServerVersion(
+        req.query.port,
+        req.query.ip,
+        req.query.proto,
+      );
 
-          res.end(JSON.stringify(retObj));
-        }
-      });
+      (async function () {
+        const ecl = await api.ecl(null, {
+          port: req.query.port,
+          ip: req.query.address,
+          proto: req.query.proto,
+        });
+
+        ecl.connect();
+        ecl.serverVersion()
+        .then((serverData) => {
+          ecl.close();
+          api.log('serverData', 'spv.server.test');
+          api.log(serverData, 'spv.server.test');
+
+          if ((serverData &&
+              typeof serverData === 'string' &&
+              serverData.indexOf('Electrum') > -1) ||
+              (serverData && JSON.stringify(serverData).indexOf('unsupported protocol version: 1.0'))) {
+            const retObj = {
+              msg: 'success',
+              result: true,
+            };
+
+            res.end(JSON.stringify(retObj));
+          } else if (
+            serverData &&
+            typeof serverData === 'object'
+          ) {
+            for (let i = 0; i < serverData.length; i++) {
+              if (serverData[i].indexOf('Electrum') > -1) {
+                const retObj = {
+                  msg: 'success',
+                  result: true,
+                };
+
+                res.end(JSON.stringify(retObj));
+
+                break;
+                return true;
+              }
+            }
+
+            const retObj = {
+              msg: 'error',
+              result: false,
+            };
+
+            res.end(JSON.stringify(retObj));
+          } else {
+            const retObj = {
+              msg: 'error',
+              result: false,
+            };
+
+            res.end(JSON.stringify(retObj));
+          }
+        });
+      })();
     } else {
       const retObj = {
         msg: 'error',
@@ -209,14 +266,21 @@ module.exports = (api) => {
   });
 
   // remote api switch wrapper
-  api.ecl = (network, customElectrum) => {
+  api.ecl = async function(network, customElectrum) {
     if (!network) {
-      return new api.electrumJSCore(
+      const protocolVersion = await api.getServerVersion(
+        customElectrum.port,
+        customElectrum.ip,
+        customElectrum.proto
+      );
+      let _ecl = new api.electrumJSCore(
         customElectrum.port,
         customElectrum.ip,
         customElectrum.proto,
         api.appConfig.spv.socketTimeout
       );
+      if (protocolVersion) _ecl.setProtocolVersion(protocolVersion);
+      return _ecl;
     } else {
       let _currentElectrumServer;
       network = network.toLowerCase();
@@ -236,6 +300,7 @@ module.exports = (api) => {
         return api.insightJSCore(api.electrumServers[network]);
       } else {
         if (api.appConfig.spv.proxy) {
+          // TODO: protocol version check
           return api.proxy(network, customElectrum);
         } else {
           const electrum = customElectrum ? {
@@ -248,12 +313,19 @@ module.exports = (api) => {
             proto: api.electrumCoins[network] && api.electrumCoins[network].server.proto || _currentElectrumServer.proto,
           };
 
-          return new api.electrumJSCore(
+          const protocolVersion = await api.getServerVersion(
+            electrum.port,
+            electrum.ip,
+            electrum.proto
+          );
+          let _ecl = new api.electrumJSCore(
             electrum.port,
             electrum.ip,
             electrum.proto,
             api.appConfig.spv.socketTimeout
           );
+          if (protocolVersion) _ecl.setProtocolVersion(protocolVersion);
+          return _ecl;
         }
       }
     }

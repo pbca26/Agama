@@ -1,21 +1,23 @@
 module.exports = (api) => {
   api.get('/electrum/estimatefee', (req, res, next) => {
     if (api.checkToken(req.query.token)) {
-      const ecl = api.ecl(req.query.network);
+      (async function () {
+        const ecl = await api.ecl(req.query.network);
 
-      ecl.connect();
-      ecl.blockchainEstimatefee(req.query.blocks)
-      .then((json) => {
-        ecl.close();
-        api.log(`electrum estimatefee ${json}`, 'spv.estimatefee');
+        ecl.connect();
+        ecl.blockchainEstimatefee(req.query.blocks)
+        .then((json) => {
+          ecl.close();
+          api.log(`electrum estimatefee ${json}`, 'spv.estimatefee');
 
-        const retObj = {
-          msg: 'success',
-          result: json,
-        };
+          const retObj = {
+            msg: 'success',
+            result: json,
+          };
 
-        res.end(JSON.stringify(retObj));
-      });
+          res.end(JSON.stringify(retObj));
+        });
+      })();
     } else {
       const retObj = {
         msg: 'error',

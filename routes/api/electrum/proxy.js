@@ -1,5 +1,4 @@
 const request = require('request');
-const Promise = require('bluebird');
 const { getRandomIntInclusive } = require('agama-wallet-lib/src/utils');
 
 // TODO: reduce code

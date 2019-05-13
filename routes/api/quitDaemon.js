@@ -27,8 +27,6 @@ module.exports = (api) => {
           if (chain &&
               !api.nativeCoindList[key.toLowerCase()] &&
               key !== 'CHIPS') {
-            api.removePubkey(chain.toLowerCase());
-
             _arg.push(`-ac_name=${chain}`);
 
             if (api.appConfig.native.dataDir.length) {
@@ -98,8 +96,6 @@ module.exports = (api) => {
 
 
       if (_chain) {
-        api.removePubkey(_chain.toLowerCase());
-
         _arg.push(`-ac_name=${_chain}`);
 
         if (api.appConfig.native.dataDir.length) {
@@ -170,9 +166,10 @@ module.exports = (api) => {
       if (req.body.mode === 'native') {
         delete api.coindInstanceRegistry[_chain ? _chain : 'komodod'];
         delete api.native.startParams[_chain ? _chain : 'komodod'];
-        
-        if (_chain) {
-          api.removePubkey(_chain.toLowerCase());
+
+        if (api.wallet.fname) {
+          api.wallet.data.coins = api.getActiveCoins();
+          api.updateActiveWalletFSData();
         }
 
         const retObj = {
@@ -188,6 +185,11 @@ module.exports = (api) => {
           api.electrumKeys = {};
         }
 
+        if (api.wallet.fname) {
+          api.wallet.data.coins = api.getActiveCoins();
+          api.updateActiveWalletFSData();
+        }
+
         const retObj = {
           msg: 'success',
           result: true,
@@ -201,6 +203,11 @@ module.exports = (api) => {
           api.eth.coins = null;
           api.eth.wallet = null;
           api.eth.connect = null;
+        }
+
+        if (api.wallet.fname) {
+          api.wallet.data.coins = api.getActiveCoins();
+          api.updateActiveWalletFSData();
         }
 
         const retObj = {

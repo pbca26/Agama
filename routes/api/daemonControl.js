@@ -6,8 +6,8 @@ const path = require('path');
 const os = require('os');
 const portscanner = require('portscanner');
 const execFile = require('child_process').execFile;
-const Promise = require('bluebird');
 const md5 = require('agama-wallet-lib/src/crypto/md5');
+const { kmdAssetChains } = require('agama-wallet-lib/src/coin-helpers');
 
 module.exports = (api) => {
   const getConf = (flock, coind) => {
@@ -191,30 +191,36 @@ module.exports = (api) => {
               datadir: '-datadir=',
               rescan: '-rescan',
               gen: '-gen',
+              regtest: '-regtest',
             };
             let _customParam = '';
 
             if (data.ac_custom_param === 'silent' ||
                 data.ac_custom_param === 'reindex' ||
                 data.ac_custom_param === 'rescan' ||
-                data.ac_custom_param === 'gen') {
+                data.ac_custom_param === 'gen' ||
+                data.ac_custom_param === 'regtest') {
               _customParam = ` ${_customParamDict[data.ac_custom_param]}`;
-            } else if (data.ac_custom_param === 'change' && data.ac_custom_param_value) {
+            } else if (
+              data.ac_custom_param === 'change' &&
+              data.ac_custom_param_value
+            ) {
               _customParam = ` ${_customParamDict[data.ac_custom_param]}${data.ac_custom_param_value}`;
             }
 
             if (api.appConfig.native.dataDir.length) {
-              _customParam = _customParam + ' -datadir=' + api.appConfig.native.dataDir + (data.ac_name !== 'komodod' ? '/' + data.ac_name : '');
+              _customParam = `${_customParam} -datadir=${api.appConfig.native.dataDir}${(data.ac_name !== 'komodod' ? `/${data.ac_name}` : '')}`;
             }
 
-            const isChain = data.ac_name.match(/^[A-Z]*$/);
-            const coindACParam = isChain ? ` -ac_name=${data.ac_name} ` : '';
+            const isChain = kmdAssetChains.indexOf(data.ac_name) > -1 ? true : false;
+            const coindACParam = isChain && data.ac_options.indexOf('ac_name') === -1 ? ` -ac_name=${data.ac_name} ` : '';
 
             api.log(`exec ${api.komododBin} ${coindACParam} ${data.ac_options.join(' ')}${_customParam}`, 'native.process');
-            api.writeLog(`exec ${api.komododBin} ${coindACParam} ${data.ac_options.join(' ')}${_customParam}`);
+            api.writeLog(`exec ${api.komododBin} ${coindACParam} ${data.ac_options.join(' ')}${_customParam}`, 'native.process');
             api.log(`daemon param ${data.ac_custom_param}`, 'native.confd');
 
             api.coindInstanceRegistry[data.ac_name] = true;
+
             if (!api.kmdMainPassiveMode) {
               let _arg = `${coindACParam}${data.ac_options.join(' ')}${_customParam}`;
               _arg = _arg.trim().split(' ');
@@ -229,6 +235,11 @@ module.exports = (api) => {
                 fs.unlinkSync(_daemonLogName);
               } catch (e) {
                 api.log(`error accessing ${_daemonLogName}, doesnt exist or another proc is already running`, 'native.process');
+              }
+
+              if (api.wallet.fname) {
+                api.wallet.data.coins = api.getActiveCoins();
+                api.updateActiveWalletFSData();
               }
 
               if (!api.appConfig.native.stopNativeDaemonsOnQuit) {
@@ -368,7 +379,10 @@ module.exports = (api) => {
                 data.ac_custom_param === 'reindex' ||
                 data.ac_custom_param === 'rescan') {
               _customParam = ` ${_customParamDict[data.ac_custom_param]}`;
-            } else if (data.ac_custom_param === 'change' && data.ac_custom_param_value) {
+            } else if (
+              data.ac_custom_param === 'change' &&
+              data.ac_custom_param_value
+            ) {
               _customParam = ` ${_customParamDict[data.ac_custom_param]}${data.ac_custom_param_value}`;
             }
 
@@ -828,7 +842,7 @@ module.exports = (api) => {
             portscanner.checkPortStatus(_port, '127.0.0.1', (error, status) => {
               // Status is 'open' if currently in use or 'closed' if available
               if (status === 'open' &&
-              api.appConfig.native.stopNativeDaemonsOnQuit) {
+                  api.appConfig.native.stopNativeDaemonsOnQuit) {
                 if (!skipError) {
                   api.log(`komodod service start error at port ${_port}, reason: port is closed`, 'native.process');
                   api.writeLog(`komodod service start error at port ${_port}, reason: port is closed`);

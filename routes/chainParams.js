@@ -30,6 +30,17 @@ const chainParams = {
 	HODL: {
 		ac_supply: 9999999,
 	},
+	ILN: {
+		ac_supply: 10000000000,
+		ac_cc: 2,
+		addnode: '51.75.122.83',
+	},
+        K64: {
+                ac_supply: 64000777,
+                ac_reward: 0,
+                ac_staked: 10,
+                addnode: '18.197.20.211',
+        },
 	MSHARK: {
 		ac_supply: 1400000,
 	},
@@ -75,9 +86,7 @@ const chainParams = {
 	EQL: {
 		ac_supply: 500000000,
 		addnode: '46.101.124.153',
-	},
-	MNZ: {
-		ac_supply: 257142858,
+	  ac_ccactivate: 205000,
 	},
 	AXO: {
 		ac_supply: 200000000,
@@ -98,10 +107,8 @@ const chainParams = {
 	},
 	OOT: {
 		ac_supply: 216000000,
+		ac_sapling: 5000000,
 		addnode: '174.138.107.226',
-	},
-	VOTE2018: {
-		ac_supply: 600000000,
 	},
 	NINJA: {
 		ac_supply: 100000000,
@@ -117,7 +124,8 @@ const chainParams = {
 	},
 	ZILLA: {
 		ac_supply: 11000000,
-		addnode: '158.69.0.53',
+		ac_sapling: 5000000,
+		addnode: '51.68.215.104',
 	},
 	DSEC: {
 		ac_supply: 7000000,
@@ -172,7 +180,6 @@ const chainParams = {
 		ac_supply: 12000000,
 		ac_reward: 1500000000,
 		ac_staked: 50,
-		ac_pubkey: '0359e2ee32833398c26378a2bb0962f98a7d77f3f6e6e4d27316bcb85542f23c61',
 		ac_end: 12000000,
 		addnode: '142.11.199.63',
 		genproclimit: true,
@@ -184,6 +191,79 @@ const chainParams = {
 		ac_cc: 2,
 		ac_founders: 1,
 		addnode: '5.9.102.210',
+	},
+	SPLTEST: {
+		ac_supply: 5555555,
+		ac_reward: 10000000000000,
+		ac_cc: 2,
+		addressindex: 1,
+		spentindex: 1,
+		addnode: [
+			'54.36.126.42',
+			'94.130.224.11',
+		],
+	},
+	LUMBER: {
+		ac_algo: 'verushash',
+		ac_veruspos: 80,
+		ac_cc: 2,
+		ac_supply: 1260000,
+		ac_reward: 470000000,
+		ac_halving: 2100000,
+		addnode: '149.202.84.141',
+		genproclimit: true,
+	},
+	KSB: {
+		ac_supply: 1000000000,
+		ac_end: 1,
+		ac_public: 1,
+		addnode: [
+			'37.187.225.231',
+			'217.182.129.38',
+		],
+	},
+	OUR: {
+		ac_reward: 1478310502,
+		ac_halving: 525600,
+		ac_cc: 42,
+		ac_supply: 100000000,
+		ac_perc: 77700,
+		ac_staked: 93,
+		ac_pubkey: '02652a3f3e00b3a1875a918314f0bac838d6dd189a346fa623f5efe9541ac0b98c',
+		ac_public: 1,
+		addnode: [
+			'37.187.225.231',
+			'217.182.129.38',
+		],
+	},
+	RICK: {
+		ac_supply: 90000000000,
+		ac_reward: 100000000,
+		ac_cc: 3,
+		addnode: '138.201.136.145',
+	},
+	MORTY: {
+		ac_supply: 90000000000,
+		ac_reward: 100000000,
+		ac_cc: 3,
+		addnode: '138.201.136.145',
+	},
+	VOTE2019: {
+		ac_supply: 123651638,
+		ac_public: 1,
+		addnode: '95.213.238.98',
+	},
+	MTST3: {
+		ac_supply: 100000,
+		ac_cc: 27410,
+		ac_reward: 300000000,
+		addnode: '136.243.58.134',
+		genproclimit: true,
+	},
+	RFOX: {
+		ac_supply: 1000000000,
+		ac_reward: 100000000,
+		addnode: '78.47.196.146',
 	},
 };
 

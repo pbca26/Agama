@@ -1,13 +1,13 @@
-// prequsites: https://www.npmjs.com/package/electron-installer-debian
+// prequsites: https://www.npmjs.com/package/electron-installer-dmg
 
-var installer = require('electron-installer-debian');
+var installer = require('electron-installer-dmg');
 
 var options = {
-  src: 'build/Agama-linux-x64/',
+  appPath: 'build/Agama-darwin-x64/Agama.app',
   dest: 'build/',
   arch: 'amd64',
   icon: 'assets/icons/agama_icons/64x64.png',
-  name: 'agama',
+  name: 'agama-app',
   bin: 'Agama',
   categories: ['Office', 'Internet'],
   homepage: 'https://komodoplatform.com',

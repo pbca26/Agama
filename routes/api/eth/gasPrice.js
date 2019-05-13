@@ -1,5 +1,4 @@
 const { ethGasStationRateToWei } = require('agama-wallet-lib/src/eth');
-const Promise = require('bluebird');
 const request = require('request');
 
 // TODO: add to atomic, use individual requests only as a fallback

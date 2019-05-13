@@ -1,7 +1,6 @@
 const fs = require('fs-extra');
 const _fs = require('graceful-fs');
 const fsnode = require('fs');
-const Promise = require('bluebird');
 const defaultConf = require('../appConfig.js').config;
 const deepmerge = require('./deepmerge.js');
 
@@ -9,6 +8,13 @@ module.exports = (api) => {
   api.loadLocalConfig = () => {
     if (fs.existsSync(`${api.agamaDir}/config.json`)) {
       let localAppConfig = fs.readFileSync(`${api.agamaDir}/config.json`, 'utf8');
+
+      try {
+        JSON.parse(localAppConfig);
+      } catch (e) {
+        api.log('unable to parse local config.json', 'settings');
+        localAppConfig = JSON.stringify(defaultConf);
+      }
 
       api.log('app config set from local file', 'settings');
       api.writeLog('app config set from local file');
@@ -246,6 +252,41 @@ module.exports = (api) => {
       });
     });
   }
+
+  /*
+   *  type: GET
+   *
+   */
+  api.get('/useragreement', (req, res, next) => {
+    if (api.checkToken(req.query.token)) {
+      if (req.query.accepted) {
+        api.appConfig.userAgreement = true;
+
+        api.saveLocalAppConf(api.appConfig);
+        
+        const retObj = {
+          msg: 'success',
+          result: 'okay',
+        };
+  
+        res.end(JSON.stringify(retObj));
+      } else {
+        const retObj = {
+          msg: 'error',
+          result: 'must accept terms',
+        };
+  
+        res.end(JSON.stringify(retObj));
+      }
+    } else {
+      const retObj = {
+        msg: 'error',
+        result: 'unauthorized access',
+      };
+
+      res.end(JSON.stringify(retObj));
+    }
+  });
 
   return api;
 };

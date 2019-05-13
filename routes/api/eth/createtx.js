@@ -1,5 +1,4 @@
 const ethers = require('ethers');
-const Promise = require('bluebird');
 const request = require('request');
 const fees = require('agama-wallet-lib/src/fees');
 const { maxSpend } = require('agama-wallet-lib/src/eth');

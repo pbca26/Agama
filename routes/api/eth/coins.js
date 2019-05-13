@@ -1,6 +1,53 @@
-const ethers = require('ethers');
-
 module.exports = (api) => {  
+  api.ethAddCoin = (coin) => {
+    const _coinuc = coin.toUpperCase();
+    
+    if (!api.eth.wallet) {
+      api.eth.wallet = {};
+    }
+
+    if (api.seed) {
+      const mnemonicWallet = api.eth._keys(api.seed);
+
+      api.eth.wallet = mnemonicWallet;
+    }
+
+    if (!api.eth.coins) {
+      api.eth.coins = {};
+    }
+
+    if (coin &&
+        !api.eth.coins[_coinuc]) {
+      if (api.eth.wallet.signingKey &&
+          api.eth.wallet.signingKey.address) {
+        const network = coin.toLowerCase().indexOf('ropsten') > -1 ? 'ropsten' : 'homestead';
+        api.eth._connect(coin, network);
+        
+        api.eth.coins[_coinuc] = {
+          pub: api.eth.wallet.signingKey.address,
+          network,
+        };
+      } else {
+        api.eth.coins[_coinuc] = {};
+      }
+
+      if (api.wallet.fname) {
+        api.wallet.data.coins = api.getActiveCoins();
+        api.updateActiveWalletFSData();
+      }
+
+      return {
+        msg: 'success',
+        result: 'true',
+      };
+    } else {
+      return {
+        msg: 'error',
+        result: `${_coinuc} is active`,
+      };
+    }
+  };
+
   api.get('/eth/coins', (req, res, next) => {
     if (api.eth.wallet &&
         api.eth.coins &&
@@ -25,45 +72,8 @@ module.exports = (api) => {
     const _coin = req.query.coin;
     
     if (_coin) {
-      const _coinuc = _coin.toUpperCase();
-
-      if (!api.eth.wallet) {
-        api.eth.wallet = {};
-      }
-
-      if (api.seed) {
-        const mnemonicWallet = api.eth._keys(api.seed);
-
-        api.eth.wallet = mnemonicWallet;
-      }
-
-      if (_coin &&
-          !api.eth.coins[_coinuc]) {
-        if (api.eth.wallet.signingKey &&
-            api.eth.wallet.signingKey.address) {
-          const network = _coin.toLowerCase().indexOf('ropsten') > -1 ? 'ropsten' : 'homestead';
-          api.eth._connect(_coin, network);
-          
-          api.eth.coins[_coinuc] = {
-            pub: api.eth.wallet.signingKey.address,
-            network,
-          };
-        } else {
-          api.eth.coins[_coinuc] = {};
-        }
-
-        const retObj = {
-          msg: 'success',
-          result: 'true',
-        };
-        res.end(JSON.stringify(retObj));
-      } else {
-        const retObj = {
-          msg: 'error',
-          result: _coinuc + ' is active',
-        };
-        res.end(JSON.stringify(retObj));
-      }
+      const retObj = api.ethAddCoin(_coin);
+      res.end(JSON.stringify(retObj));
     } else {
       const retObj = {
         msg: 'error',

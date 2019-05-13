@@ -1,6 +1,5 @@
 const path = require('path');
 const _fs = require('graceful-fs');
-const Promise = require('bluebird');
 const os = require('os');
 const fs = require('fs');
 
@@ -35,11 +34,13 @@ module.exports = (api) => {
       }
 
       if (_ac) {
-        _location = `${api.komodoDir}/${_ac}`;
+        _location = `${api.komodoDir}/${_ac}${api.native.startParams && api.native.startParams[_ac] && api.native.startParams[_ac].indexOf('-regtest') > 0 ? '/regtest' : ''}`;
 
         if (_ac === 'CHIPS') {
           _location = api.chipsDir;
         }
+      } else {
+        _location = `${api.komodoDir}${api.native.startParams && api.native.startParams.KMD && api.native.startParams.KMD.indexOf('-regtest') > 0 ? '/regtest' : ''}`;
       }
 
       api.readDebugLog(`${_location}/debug.log`, _lastNLines)
