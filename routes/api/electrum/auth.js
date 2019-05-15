@@ -4,6 +4,7 @@ const bitcoin = require('bitcoinjs-lib');
 const {
   seedToPriv,
   stringToWif,
+  multisig,
 } = require('agama-wallet-lib/src/keys');
 
 // TODO: merge spv and eth login/logout into a single func
@@ -65,33 +66,44 @@ module.exports = (api) => {
             isWif = true;
           } catch (e) {}
 
-          if (isWif) {
-            try {
-              const _network = api.getNetworkData(key.toLowerCase());
-              const _key = stringToWif(_seed, _network, isIguana);
-              keys = {
-                priv: _key.priv,
-                pub: _key.pub,
-                pubHex: _key.pubHex,
-              };              
-            } catch (e) {
-              api.log(e, 'api.auth');
-              _wifError = true;
-              break;
-            }
-          } else {
-            keys = api.seedToWif(
-              _seed,
-              api.findNetworkObj(key),
-              isIguana,
-            );
-          }
+          if (api.wallet.type &&
+              api.wallet.type === 'multisig') {
+            const _network = api.getNetworkData(key.toLowerCase());
+            const pub = multisig.redeemScriptToPubAddress(api.wallet.data.sigData.redeemScript, _network);
 
-          api.electrumKeys[key] = {
-            priv: keys.priv,
-            pub: keys.pub,
-            pubHex: keys.pubHex,
-          };
+            api.electrumKeys[key] = {
+              priv: null,
+              pub,
+            };
+          } else {
+            if (isWif) {
+              try {
+                const _network = api.getNetworkData(key.toLowerCase());
+                const _key = stringToWif(_seed, _network, isIguana);
+                keys = {
+                  priv: _key.priv,
+                  pub: _key.pub,
+                  pubHex: _key.pubHex,
+                };              
+              } catch (e) {
+                api.log(e, 'api.auth');
+                _wifError = true;
+                break;
+              }
+            } else {
+              keys = api.seedToWif(
+                _seed,
+                api.findNetworkObj(key),
+                isIguana,
+              );
+            }
+
+            api.electrumKeys[key] = {
+              priv: keys.priv,
+              pub: keys.pub,
+              pubHex: keys.pubHex,
+            };
+          }
         }
       }
     }

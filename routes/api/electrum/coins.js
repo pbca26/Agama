@@ -43,19 +43,18 @@ module.exports = (api) => {
     };
 
     if (randomServer) {
-      api.log(`random ${coin} electrum server ${randomServer.ip + ':' + randomServer.port}`, 'spv.coin');
+      api.log(`random ${coin} electrum server ${randomServer.ip + ':' + randomServer.port + ':' + randomServer.proto}`, 'spv.coin');
     } else {
-      api.log(`${coin} doesnt have any backup electrum servers`, 'spv.coin');
+      api.log(`${coin} doesn\'t have any backup electrum servers`, 'spv.coin');
     }
 
-    if (Object.keys(api.electrumKeys).length > 0) {
+    if ((!api.wallet.type || (api.wallet.type && api.wallet.type !== 'multisig')) && Object.keys(api.electrumKeys).length > 0) {
       const _keys = api.wifToWif(api.electrumKeys[Object.keys(api.electrumKeys)[0]].priv, coin);
 
       api.electrumKeys[coin] = {
         priv: _keys.priv,
         pub: _keys.pub,
       };
-
     } else if (api.seed) {
       api.auth(api.seed, true);
     }
