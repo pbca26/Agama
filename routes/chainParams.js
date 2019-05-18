@@ -265,6 +265,21 @@ const chainParams = {
 		ac_reward: 100000000,
 		addnode: '78.47.196.146',
 	},
+	ZEXO: {
+		ac_reward: 1478310502,
+		ac_halving: 525600,
+		ac_cc: 42,
+		ac_ccenable: 236,
+		ac_supply: 100000000,
+		ac_perc: 77700,
+		ac_staked: 93,
+		ac_pubkey: '02713bd85e054db923694b6b7a85306264edf4d6bd6d331814f2b40af444b3ebbc',
+		ac_public: 1,
+		addnode: [
+			'80.240.17.222',
+			'195.201.20.230',
+		],
+	},
 };
 
 module.exports = chainParams;
