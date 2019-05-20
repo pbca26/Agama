@@ -536,7 +536,7 @@ module.exports = (api) => {
           } else {
             const retObj = {
               msg: 'error',
-              result: utxoList,
+              result: 'no valid utxo',
             };
 
             res.end(JSON.stringify(retObj));
