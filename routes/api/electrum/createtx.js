@@ -147,6 +147,14 @@ module.exports = (api) => {
             api.log(utxoListFormatted, 'spv.createrawtx');
 
             const _maxSpendBalance = Number(api.maxSpendBalance(utxoListFormatted));
+
+            const retObj = {
+              msg: 'error',
+              result: `Spend value is too large. Max available amount is ${Number((_maxSpendBalance * 0.00000001.toFixed(8)))}. If you have UTXO in transition wait until they are confirmed.`,
+            };
+
+            res.end(JSON.stringify(retObj));
+            
             let targets = [{
               address: outputAddress,
               value: value > _maxSpendBalance ? _maxSpendBalance : value,
@@ -259,9 +267,9 @@ module.exports = (api) => {
             const _maxSpend = api.maxSpendBalance(utxoListFormatted);
 
             if (value > _maxSpend) {
-              const retsObj = {
+              const retObj = {
                 msg: 'error',
-                result: `Spend value is too large. Max available amount is ${Number((_maxSpend * 0.00000001.toFixed(8)))}`,
+                result: `Spend value is too large. Max available amount is ${Number((_maxSpend * 0.00000001.toFixed(8)))}. If you have UTXO in transition wait until they are confirmed.`,
               };
 
               res.end(JSON.stringify(retObj));
