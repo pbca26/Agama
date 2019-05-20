@@ -150,7 +150,7 @@ module.exports = (api) => {
                           ecl
                         )
                         .then((_rawtxJSON) => {
-                          if (transaction.height === 'pending') transaction.height = currentHeight;
+                          if (transaction.height === 'pending') transaction.height = currentHeight + 1;
                           
                           api.log('electrum gettransaction ==>', 'spv.listtransactions');
                           api.log((index + ' | ' + (_rawtxJSON.length - 1)), 'spv.listtransactions');
