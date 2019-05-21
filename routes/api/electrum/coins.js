@@ -1,4 +1,5 @@
 const { getRandomIntInclusive } = require('agama-wallet-lib/src/utils');
+const { kmdAssetChains } = require('agama-wallet-lib/src/coin-helpers');
 
 module.exports = (api) => {
   api.findCoinName = (network) => {
@@ -140,6 +141,7 @@ module.exports = (api) => {
 
   api.checkCoinConfigIntegrity = (coin) => {
     let _totalCoins = 0;
+    let _totalAcCoins = 0;
 
     for (let key in api.electrumJSNetworks) {
       if (!api.electrumServers[key] ||
@@ -152,7 +154,20 @@ module.exports = (api) => {
       }
     }
 
-    api.log(`total supported spv coins ${_totalCoins}`, 'spv.coin');
+    for (let i = 0; i < kmdAssetChains.length; i++) {
+      const key = kmdAssetChains[i].toLowerCase();
+
+      if (!api.electrumServers[key] ||
+          (api.electrumServers[key] && !api.electrumServers[key].serverList)) {
+        api.log(`disable asset chain ${key}, coin config check not passed`, 'spv.coin');
+        delete api.electrumServers[key];
+        delete api.electrumServersFlag[key];
+      } else {
+        _totalAcCoins++;
+      }
+    }
+
+    api.log(`total supported spv coins ${_totalCoins}, spv asset chains ${_totalAcCoins}`, 'spv.coin');
   };
 
   return api;
