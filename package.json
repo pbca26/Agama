@@ -1,7 +1,7 @@
 {
   "name": "Agama",
   "productName": "Agama",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "description": "Agama Wallet Desktop App",
   "main": "main.js",
   "scripts": {
@@ -31,28 +31,29 @@
   "devDependencies": {
     "cross-env": "^5.2.0",
     "electron": "4.1.1",
+    "electron-builder": "^20.40.2",
     "electron-devtools-installer": "^2.2.4"
   },
   "dependencies": {
     "adm-zip": "^0.4.7",
-    "agama-wallet-lib": "git+https://github.com/pbca26/agama-wallet-lib#dev",
+    "agama-wallet-lib": "git+https://github.com/pbca26/agama-wallet-lib.git#dev",
     "arch": "^2.1.0",
-    "async": "^2.6.0",
+    "async": "^2.6.2",
     "bigi": "^1.4.2",
-    "bip39": "^2.5.0",
-    "bitcoinforksjs-lib": "git+https://github.com/SuperNETorg/bitcoinjs-lib#opt-in-bitcoincash-sighash",
+    "bip39": "^2.6.0",
+    "bitcoinforksjs-lib": "git+https://github.com/SuperNETorg/bitcoinjs-lib.git#opt-in-bitcoincash-sighash",
     "bitcoinjs-lib": "git+https://github.com/SuperNETorg/bitcoinjs-lib.git",
-    "bitcoinjs-lib-pos": "git+https://github.com/KomodoPlatform/bitcoinjs-lib-pos",
-    "bitcoinjs-lib-zcash": "git+https://github.com/pbca26/bitcoinjs-lib#zcash",
+    "bitcoinjs-lib-pos": "git+https://github.com/KomodoPlatform/bitcoinjs-lib-pos.git",
+    "bitcoinjs-lib-zcash": "git+https://github.com/pbca26/bitcoinjs-lib.git#zcash",
     "bitgo-utxo-lib": "git+https://github.com/pbca26/bitgo-utxo-lib.git",
-    "bitgo-utxo-lib-groestl": "git+https://github.com/SuperNETorg/bitgo-utxo-lib",
-    "body-parser": "^1.15.2",
+    "bitgo-utxo-lib-groestl": "git+https://github.com/SuperNETorg/bitgo-utxo-lib.git",
+    "body-parser": "^1.19.0",
     "buffer-reverse": "^1.0.1",
     "coinselect": "github:bitcoinjs/coinselect",
-    "create-hash": "git+https://github.com/pbca26/createHash#electron-v4",
-    "electron": "4.1.1",
-    "ethereumjs-util": "^6.0.0",
-    "ethers": "git+https://github.com/pbca26/ethers.js",
+    "create-hash": "git+https://github.com/pbca26/createHash.git#electron-v4",
+    "cross-spawn": "^6.0.5",
+    "ethereumjs-util": "^6.1.0",
+    "ethers": "git+https://github.com/pbca26/ethers.js.git",
     "express": "^4.14.0",
     "fix-path": "^2.1.0",
     "fs-extra": "^7.0.0",
@@ -71,6 +72,6 @@
     "socket.io": "^2.1.1",
     "tx-decoder": "git+https://github.com/pbca26/tx-decoder.git",
     "wif": "^2.0.6",
-    "winston": "^3.1.0"
+    "winston": "^3.2.1"
   }
 }
