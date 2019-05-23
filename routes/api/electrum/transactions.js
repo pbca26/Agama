@@ -1,9 +1,14 @@
 const asyncNPM = require('async');
 const { hex2str } = require('agama-wallet-lib/src/crypto/utils');
 const { isKomodoCoin } = require('agama-wallet-lib/src/coin-helpers');
-const { pubToElectrumScriptHashHex } = require('agama-wallet-lib/src/keys');
+const {
+  pubToElectrumScriptHashHex,
+  stringToWif,
+} = require('agama-wallet-lib/src/keys');
 const btcnetworks = require('agama-wallet-lib/src/bitcoinjs-networks');
 const { sortTransactions } = require('agama-wallet-lib/src/utils');
+const { multisig } = require('agama-wallet-lib/src/transaction-builder');
+const { redeemScriptToPubAddress } = require('agama-wallet-lib/src/keys').multisig;
 
 // TODO: add z -> pub, pub -> z flag for zcash forks
 
@@ -507,6 +512,198 @@ module.exports = (api) => {
           res.end(JSON.stringify(retObj));
         });
       })();
+    } else {
+      const retObj = {
+        msg: 'error',
+        result: 'unauthorized access',
+      };
+
+      res.end(JSON.stringify(retObj));
+    }
+  });
+
+  api.decodeTransaction = (rawtx, network) => {    
+    return new Promise((resolve, reject) => {
+      (async function() {
+        const ecl = await api.ecl(network);
+
+        api.log('electrum listtransactions ==>', 'spv.listtransactions');
+        ecl.connect();
+
+        // decode tx
+        const _network = api.getNetworkData(network);
+        const decodedTx = api.electrumJSTxDecoder(
+          rawtx,
+          network,
+          _network
+        );
+
+        let txInputs = [];
+        let opreturn = false;
+
+        api.log(`decodedtx network ${network}`, 'spv.decoderawtx');
+
+        api.log('decodedtx =>', 'spv.decoderawtx');
+        api.log(decodedTx.outputs, 'spv.decoderawtx');
+
+        let index2 = 0;
+
+        if (decodedTx &&
+            decodedTx.outputs &&
+            decodedTx.outputs.length) {
+          for (let i = 0; i < decodedTx.outputs.length; i++) {
+            if (decodedTx.outputs[i].scriptPubKey.type === 'nulldata') {
+              if (isKv &&
+                  isKomodoCoin(network)) {
+                opreturn = {
+                  kvHex: decodedTx.outputs[i].scriptPubKey.hex,
+                  kvAsm: decodedTx.outputs[i].scriptPubKey.asm,
+                  kvDecoded: api.kvDecode(decodedTx.outputs[i].scriptPubKey.asm.substr(10, decodedTx.outputs[i].scriptPubKey.asm.length), true),
+                };
+              } else {
+                opreturn = hex2str(decodedTx.outputs[i].scriptPubKey.hex);
+              }
+            }
+          }
+        }
+
+        if (decodedTx &&
+            decodedTx.inputs &&
+            decodedTx.inputs.length) {
+          asyncNPM.eachOfSeries(decodedTx.inputs, (_decodedInput, ind2, callback2) => {
+            const checkLoop = () => {
+              index2++;
+
+              if (index2 === decodedTx.inputs.length ||
+                  index2 === api.appConfig.spv.maxVinParseLimit) {
+                api.log(`raw tx decode inputs ${decodedTx.inputs.length} | ${index2} => done`, 'spv.decoderawtx');
+                const _parsedTx = {
+                  network: decodedTx.network,
+                  format: decodedTx.format,
+                  inputs: txInputs,
+                  outputs: decodedTx.outputs,
+                };
+                const formattedTx = api.parseTransactionAddresses(
+                  _parsedTx,
+                  api.wallet.type === 'multisig' ? redeemScriptToPubAddress(api.wallet.data.sigData.redeemScript, _network) : null,
+                  network.toLowerCase() === 'kmd',
+                  api.wallet.type === 'multisig' ? null : { skipTargetAddress: true },
+                );
+
+                resolve({
+                  hex: rawtx,
+                  inputs: decodedTx.inputs,
+                  outputs: decodedTx.outputs,
+                  locktime: decodedTx.format.locktime,
+                  vinLen: decodedTx.inputs.length,
+                  vinMaxLen: api.appConfig.spv.maxVinParseLimit,
+                  opreturn: opreturn[0],
+                  parsedInputs: txInputs,
+                  formattedTx,
+                });   
+              } else {
+                callback2();
+              }
+            }
+
+            if (_decodedInput.txid !== '0000000000000000000000000000000000000000000000000000000000000000') {
+              api.getTransaction(
+                _decodedInput.txid,
+                network,
+                ecl
+              )
+              .then((rawInput) => {
+                const decodedVinVout = api.electrumJSTxDecoder(
+                  rawInput,
+                  network,
+                  _network
+                );
+
+                if (decodedVinVout) {
+                  api.log(decodedVinVout.outputs[_decodedInput.n], 'spv.decoderawtx');
+                  txInputs.push(decodedVinVout.outputs[_decodedInput.n]);
+                }
+                checkLoop();
+              });
+            } else {
+              checkLoop();
+            }
+          });
+        } else {
+          resolve('error parsing raw tx')
+        }
+      })();
+    });
+  };
+
+  api.post('/electrum/decoderawtx', (req, res, next) => {
+    if (api.checkToken(req.body.token)) {
+      const rawtx = req.body.rawtx;
+      const network = req.body.network;
+
+      api.decodeTransaction(rawtx, network)
+      .then((decodeRes) => {
+        api.log(decodeRes, 'spv.decoderawtx');
+
+        if (api.wallet.type === 'multisig') {
+          let inputs = [];
+          
+          decodeRes.amounts = {
+            inputs: {},
+            outputs: {},
+          };
+
+          for (let i = 0; i < decodeRes.parsedInputs.length; i++) {
+            const _address = decodeRes.parsedInputs[i].scriptPubKey && decodeRes.parsedInputs[i].scriptPubKey.addresses && decodeRes.parsedInputs[i].scriptPubKey.addresses[0];
+
+            if (decodeRes.amounts.inputs[_address]) {
+              decodeRes.amounts.inputs[_address] += Number(decodeRes.parsedInputs[i].value);
+            } else {
+              decodeRes.amounts.inputs[_address] = Number(decodeRes.parsedInputs[i].value);
+            }
+          }
+
+          for (let i = 0; i < decodeRes.outputs.length; i++) {
+            const _address = decodeRes.outputs[i].scriptPubKey && decodeRes.outputs[i].scriptPubKey.addresses && decodeRes.outputs[i].scriptPubKey.addresses[0];
+
+            if (decodeRes.amounts.outputs[_address]) {
+              decodeRes.amounts.outputs[_address] += Number(decodeRes.outputs[i].value);
+            } else {
+              decodeRes.amounts.outputs[_address] = Number(decodeRes.outputs[i].value);
+            }
+          }
+
+          for (let i = 0; i < decodeRes.parsedInputs.length; i++) {
+            inputs.push(decodeRes.parsedInputs[i]);
+            inputs[i].value = inputs[i].satoshi;
+            delete inputs[i].satoshi;
+          }
+
+          const _keys = stringToWif(
+            api.wallet.data.keys.seed,
+            api.electrumJSNetworks[network] || api.getNetworkData(network),
+            true
+          );
+          const signaturesData = multisig.checkSignatures(
+            inputs,
+            rawtx,
+            api.wallet.data.sigData.redeemScript,
+            api.electrumJSNetworks[network] || api.getNetworkData(network),
+          );
+
+          decodeRes.multisig = {
+            signaturesData: !signaturesData.error ? signaturesData : 'wrong redeem script',
+            signingPubHex: _keys.pubHex,
+          };
+        }
+
+        const retObj = {
+          msg: 'success',
+          result: decodeRes,
+        };
+
+        res.end(JSON.stringify(retObj));
+      });
     } else {
       const retObj = {
         msg: 'error',
