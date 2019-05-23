@@ -471,6 +471,36 @@ module.exports = (api) => {
                             signingPubHex: _keys.pubHex,
                           };
 
+                          if (signaturesData.signatures.required === signaturesData.signatures.verified) {
+                            const rawtxComplete = transaction(
+                              outputAddress,
+                              changeAddress,
+                              _keys.priv,
+                              api.electrumJSNetworks[network] || api.getNetworkData(network),
+                              inputs,
+                              _change,
+                              value,
+                              req[reqType].multisig.creator ? {
+                                multisig: {
+                                  creator: true, 
+                                  redeemScript: api.wallet.data.sigData.redeemScript,
+                                },
+                              } : {
+                                multisig: {
+                                  rawtx: req[reqType].multisig.rawtx, 
+                                  redeemScript: api.wallet.data.sigData.redeemScript,
+                                },
+                              },
+                            );
+
+                            _rawtx = {
+                              incomplete: _rawtx,
+                              complete: rawtxComplete,
+                            };
+
+                            api.log(`multisig tx is finalized ${signaturesData.signatures.required} of ${signaturesData.signatures.verified} signatures verified`, 'spv.createrawtx.multisig');
+                          }
+
                           api.log('multisig rawtx', 'spv.createrawtx.multisig');
                           api.log(_rawtx, 'spv.createrawtx.multisig');
                           api.log('signatures data', 'spv.createrawtx.multisig');
