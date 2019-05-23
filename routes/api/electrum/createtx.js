@@ -1,6 +1,10 @@
 const coinSelect = require('coinselect');
 const { estimateTxSize } = require('agama-wallet-lib/src/utils');
-const { transaction } = require('agama-wallet-lib/src/transaction-builder');
+const {
+  transaction,
+  multisig,
+} = require('agama-wallet-lib/src/transaction-builder');
+const { stringToWif } = require('agama-wallet-lib/src/keys');
 
 // TODO: - account for 1000 sats opreturn in tx calc
 //       - use agama-wallet-lib for utxo selection
@@ -54,12 +58,13 @@ module.exports = (api) => {
       (async function() {
         // TODO: unconf output(s) error message
         const network = req[reqType].network || api.findNetworkObj(req[reqType].coin);
-        let ecl = await api.ecl(network);
         const outputAddress = req[reqType].address;
         const changeAddress = req[reqType].change;
         const push = req[reqType].push;
         const opreturn = req[reqType].opreturn;
         const btcFee = req[reqType].customFee && Number(req[reqType].customFee) !== 0 ? null : (req[reqType].btcfee ? Number(req[reqType].btcfee) : null);
+
+        let ecl = await api.ecl(network);
         let fee = req[reqType].customFee && Number(req[reqType].customFee) !== 0 ? Number(req[reqType].customFee) : api.electrumServers[network].txfee;
         let value = Number(req[reqType].value);
         let wif = req[reqType].wif;
@@ -147,10 +152,21 @@ module.exports = (api) => {
             api.log(utxoListFormatted, 'spv.createrawtx');
 
             const _maxSpendBalance = Number(api.maxSpendBalance(utxoListFormatted));
+
+            if (value > _maxSpendBalance) {
+              const retObj = {
+                msg: 'error',
+                result: `Spend value is too large. Max available amount is ${Number((_maxSpendBalance * 0.00000001.toFixed(8)))}`,
+              };
+
+              res.end(JSON.stringify(retObj));
+            }
+
             let targets = [{
               address: outputAddress,
               value: value > _maxSpendBalance ? _maxSpendBalance : value,
             }];
+            
             api.log('targets =>', 'spv.createrawtx');
             api.log(targets, 'spv.createrawtx');
 
@@ -259,7 +275,7 @@ module.exports = (api) => {
             const _maxSpend = api.maxSpendBalance(utxoListFormatted);
 
             if (value > _maxSpend) {
-              const retsObj = {
+              const retObj = {
                 msg: 'error',
                 result: `Spend value is too large. Max available amount is ${Number((_maxSpend * 0.00000001.toFixed(8)))}`,
               };
@@ -385,6 +401,8 @@ module.exports = (api) => {
 
                   res.end(JSON.stringify(retObj));
                 } else {
+                  let multisigData = {};
+                  
                   if (req[reqType].unsigned) {
                     _rawtx = transaction(
                       outputAddress,
@@ -397,22 +415,85 @@ module.exports = (api) => {
                     );
                   } else {
                     if (!req[reqType].offline) {
-                      _rawtx = transaction(
-                        outputAddress,
-                        changeAddress,
-                        wif,
-                        api.electrumJSNetworks[network] || api.getNetworkData(network),
-                        inputs,
-                        _change,
-                        value,
-                        opreturn ? { opreturn } : null,
-                      );
+                      if (api.wallet.type &&
+                          api.wallet.type === 'multisig') {
+                        const _keys = stringToWif(
+                          api.wallet.data.keys.seed,
+                          api.electrumJSNetworks[network] || api.getNetworkData(network),
+                          true
+                        );
+
+                        console.log(_keys)
+                        
+                        _rawtx = transaction(
+                          outputAddress,
+                          changeAddress,
+                          _keys.priv,
+                          api.electrumJSNetworks[network] || api.getNetworkData(network),
+                          inputs,
+                          _change,
+                          value,
+                          req[reqType].multisig.creator ? {
+                            multisig: {
+                              creator: true, 
+                              redeemScript: api.wallet.data.sigData.redeemScript,
+                              incomplete: req[reqType].multisig.incomplete || req[reqType].multisig.incomplete === 'true' ? true : false,
+                            },
+                          } : {
+                            multisig: {
+                              rawtx: req[reqType].multisig.rawtx, 
+                              redeemScript: api.wallet.data.sigData.redeemScript,
+                              incomplete: req[reqType].multisig.incomplete || req[reqType].multisig.incomplete === 'true' ? true : false,
+                            },
+                          },
+                        );
+
+                        api.log(`multisig tx mode: ${req[reqType].multisig.creator ? 'creator' : 'co-signer'}`, 'spv.createrawtx.multisig');
+
+                        if (_rawtx.hasOwnProperty('error')) {
+                          api.log(`multisig ${_keys.pubHex} can't sign this tx`, 'spv.createrawtx.multisig');
+
+                          const retObj = {
+                            msg: 'error',
+                            result: 'Multisig: you can\'t sign this transaction',
+                          };
+
+                          res.end(JSON.stringify(retObj));
+                        } else {
+                          const signaturesData = multisig.checkSignatures(
+                            inputs,
+                            _rawtx,
+                            api.wallet.data.sigData.redeemScript,
+                            api.electrumJSNetworks[network] || api.getNetworkData(network),
+                          );
+                          multisigData = {
+                            signaturesData,
+                            signingPubHex: _keys.pubHex,
+                          };
+
+                          api.log('multisig rawtx', 'spv.createrawtx.multisig');
+                          api.log(_rawtx, 'spv.createrawtx.multisig');
+                          api.log('signatures data', 'spv.createrawtx.multisig');
+                          api.log(signaturesData, 'spv.createrawtx.multisig');
+                        }
+                      } else {
+                        _rawtx = transaction(
+                          outputAddress,
+                          changeAddress,
+                          wif,
+                          api.electrumJSNetworks[network] || api.getNetworkData(network),
+                          inputs,
+                          _change,
+                          value,
+                          opreturn ? { opreturn } : null,
+                        );
+                      }
                     }
                   }
 
                   if (!push ||
                       push === 'false') {
-                    const retObj = {
+                    let retObj = {
                       msg: 'success',
                       result: {
                         utxoSet: inputs,
@@ -430,6 +511,10 @@ module.exports = (api) => {
                         dpowSecured,
                       },
                     };
+
+                    if (Object.keys(multisigData)) {
+                      retObj.result.multisigData = multisigData;
+                    }
 
                     res.end(JSON.stringify(retObj));
                   } else {
@@ -536,7 +621,7 @@ module.exports = (api) => {
           } else {
             const retObj = {
               msg: 'error',
-              result: utxoList,
+              result: 'no valid utxo',
             };
 
             res.end(JSON.stringify(retObj));
