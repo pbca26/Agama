@@ -140,7 +140,8 @@ module.exports = (api) => {
     );
 
     return new Promise((resolve, reject) => {
-      if (api.electrumServersProtocolVersion.hasOwnProperty(`${ip}:${port}:${proto}`)) {
+      if (api.electrumServersProtocolVersion.hasOwnProperty(`${ip}:${port}:${proto}`) &&
+          Number(api.electrumServersProtocolVersion[`${ip}:${port}:${proto}`])) {
         api.log(`getServerVersion cached ${`${ip}:${port}:${proto}`} protocol version: ${api.electrumServersProtocolVersion[`${ip}:${port}:${proto}`]}`, 'electrum.version.check');
         resolve(api.electrumServersProtocolVersion[`${ip}:${port}:${proto}`]);
       } else {
