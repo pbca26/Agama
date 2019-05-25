@@ -49,7 +49,9 @@ module.exports = (api) => {
       data: api.wallet.data,
     });
 
-    api.log(JSON.stringify(api.wallet.data), 'pin contents');
+    if (api.appConfig.dev) {
+      api.log(JSON.stringify(api.wallet.data), 'pin contents');
+    }
 
     encrypt(fsObj, api.wallet.pin)
     .then((encryptedString) => {
@@ -284,7 +286,9 @@ module.exports = (api) => {
                     decryptedKeyObj.data.coins = api.pinFilterOutDisabledCoins(decryptedKeyObj.data.coins);
                   }
 
-                  api.log(JSON.stringify(typeof decryptedKeyObj === 'object' ? decryptedKeyObj.data : decryptedKeyObj), 'pin contents decrypt');
+                  if (api.appConfig.dev) {
+                    api.log(JSON.stringify(typeof decryptedKeyObj === 'object' ? decryptedKeyObj.data : decryptedKeyObj), 'pin contents decrypt');
+                  }
 
                   const retObj = {
                     msg: 'success',
