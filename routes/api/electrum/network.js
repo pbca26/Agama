@@ -140,7 +140,8 @@ module.exports = (api) => {
     );
 
     return new Promise((resolve, reject) => {
-      if (api.electrumServersProtocolVersion.hasOwnProperty(`${ip}:${port}:${proto}`)) {
+      if (api.electrumServersProtocolVersion.hasOwnProperty(`${ip}:${port}:${proto}`) &&
+          Number(api.electrumServersProtocolVersion[`${ip}:${port}:${proto}`])) {
         api.log(`getServerVersion cached ${`${ip}:${port}:${proto}`} protocol version: ${api.electrumServersProtocolVersion[`${ip}:${port}:${proto}`]}`, 'electrum.version.check');
         resolve(api.electrumServersProtocolVersion[`${ip}:${port}:${proto}`]);
       } else {
@@ -152,22 +153,7 @@ module.exports = (api) => {
           ecl.close();
           api.log('getServerVersion non-cached', 'electrum.version.check');
 
-          if (serverData &&
-              typeof serverData === 'string' &&
-              serverData.indexOf('ElectrumX') > -1) {
-            serverVersion = serverData.split('ElectrumX')[1].trim();
-
-            if (serverVersion) {
-              api.log(`${serverVersion} vs ${electrumMinVersionProtocolV1_4} ${(semverCmp(serverVersion, electrumMinVersionProtocolV1_4) >=0 ? '1.4' : '< 1.4')}`, 'electrum.version.check');
-              
-              if (semverCmp(serverVersion, electrumMinVersionProtocolV1_4) >= 0) {
-                api.electrumServersProtocolVersion[`${ip}:${port}:${proto}`] = 1.4;
-              } else {
-                api.electrumServersProtocolVersion[`${ip}:${port}:${proto}`] = 1.0;
-              }
-            }
-          } else if (
-            serverData &&
+         if (serverData &&
             typeof serverData === 'object' &&
             serverData[0] &&
             serverData[0].indexOf('ElectrumX') > -1 &&
@@ -213,8 +199,8 @@ module.exports = (api) => {
 
           if ((serverData &&
               typeof serverData === 'string' &&
-              serverData.indexOf('Electrum') > -1) ||
-              (serverData && JSON.stringify(serverData).indexOf('unsupported protocol version: 1.0'))) {
+              serverData.indexOf('Electrum') > -1 && serverData.indexOf('Error: close connect') === -1) ||
+              (serverData && JSON.stringify(serverData).indexOf('unsupported protocol version: 1.0') > -1)) {
             const retObj = {
               msg: 'success',
               result: true,
