@@ -120,6 +120,9 @@ api = require('./api/elections.js')(api);
 // kv
 api = require('./api/kv.js')(api);
 
+// multisigDB
+api = require('./api/electrum/multisigDB.js')(api);
+
 // eth
 api.eth = {
   coins: {},

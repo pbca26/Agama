@@ -320,6 +320,22 @@ function createAppCloseWindow() {
 					api.writeLog(`guiapp and sockets.io are listening on port ${appConfig.agamaPort}`);
 					// start sockets.io
 					io.set('origins', appConfig.dev || process.argv.indexOf('devmode') > -1 ? 'http://127.0.0.1:3000' : null); // set origin
+
+					if (api.argv &&
+							api.argv.pin &&
+							api.argv.pw) {
+						const _pin = api.argv.pin.split('=');
+						const _pw = api.argv.pw.split('=');
+						
+						if (_pin && _pin[0] &&
+								_pw && _pw[0]) {
+							(async function() {
+								api.log('load pin from argv', 'dev');
+								await api.pinLoadFromArgv(_pin[0], _pw[0]);
+								api.auth(api.wallet.data.keys.seed, true);
+							})();
+						}
+					}
 				});
 
 				// initialise window
@@ -338,6 +354,7 @@ function createAppCloseWindow() {
 
 				// load our index.html (i.e. Agama GUI)
 				api.writeLog('show agama gui');
+
 				const _assetChainPorts = require('./routes/ports.js');
 				
 				staticVar.arch = localVersion[1].indexOf('-spv-only') > -1 ? 'spv-only' : arch();
@@ -500,12 +517,14 @@ function createAppCloseWindow() {
 				if (process.argv.indexOf('dexonly') > -1) {
 					api.killRogueProcess('marketmaker');
 				}
+
 				if (!Object.keys(api.coindInstanceRegistry).length ||
 						!appConfig.native.stopNativeDaemonsOnQuit) {
 					closeApp();
 				} else {
 					createAppCloseWindow();
 					api.quitKomodod(appConfig.native.cliStopTimeout);
+
 					_appClosingInterval = setInterval(() => {
 						if (!Object.keys(api.coindInstanceRegistry).length) {
 							closeApp();
@@ -526,6 +545,7 @@ function createAppCloseWindow() {
 // Calling event.preventDefault() will prevent the default behaviour, which is terminating the application.
 app.on('before-quit', (event) => {
 	api.log('before-quit', 'quit');
+
 	if (process.argv.indexOf('dexonly') > -1) {
 		api.killRogueProcess('marketmaker');
 	}

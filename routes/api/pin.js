@@ -1,3 +1,4 @@
+const request = require('request');
 const fs = require('fs-extra');
 const passwdStrength = require('passwd-strength');
 const bitcoin = require('bitcoinjs-lib');
@@ -487,6 +488,30 @@ module.exports = (api) => {
       res.end(JSON.stringify(retObj));
     }
   });
+
+  // for debug purposes
+  api.pinLoadFromArgv = (pubkey, key) => {
+    return new Promise((resolve, reject) => {
+      const options = {
+        url: `http://127.0.0.1:${api.appConfig.agamaPort}/api/decryptkey`,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pubkey,
+          key,
+          token: api.appSessionHash,
+        }),
+      };
+
+
+      request(options, (error, response, body) => {
+        api.log(body, 'dev.pinLoadFromArgv');
+        resolve();
+      });
+    });
+  };
 
   return api;
 };
