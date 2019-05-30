@@ -50,6 +50,7 @@ const appConfig = {
       coinswitchKey: '',
     },
     userAgreement: false,
+    oldLoginMethod: false,
     // coinControl: false,
     // darkmode: false,
   },
@@ -298,6 +299,12 @@ const appConfig = {
       display: false,
       displayName: 'User agreement',
       info: 'User agreement',
+      type: 'boolean',
+    },
+    oldLoginMethod: {
+      display: true,
+      displayName: 'Direct seed / WIF login',
+      info: 'Old login method, pre v0.3.6',
       type: 'boolean',
     },
     /*coinControl: {

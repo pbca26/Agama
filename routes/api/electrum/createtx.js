@@ -14,7 +14,7 @@ module.exports = (api) => {
     let maxSpendBalance = 0;
 
     for (let i = 0; i < utxoList.length; i++) {
-      maxSpendBalance += Number(utxoList[i].value);
+      maxSpendBalance += Number(utxoList[i].value) + Number(utxoList[i].interestSats ? utxoList[i].interestSats : 0);
     }
 
     if (fee) {
@@ -156,7 +156,7 @@ module.exports = (api) => {
             if (value > _maxSpendBalance) {
               const retObj = {
                 msg: 'error',
-                result: `Spend value is too large. Max available amount is ${Number((_maxSpendBalance * 0.00000001.toFixed(8)))}`,
+                result: `Spend value is too large. Max available amount is ${Number((_maxSpendBalance * 0.00000001.toFixed(8)))}. If you have UTXO in transition wait until they are confirmed.`,
               };
 
               res.end(JSON.stringify(retObj));
@@ -225,6 +225,16 @@ module.exports = (api) => {
 
             let _change = 0;
 
+            // all coinselect rounds are failed
+            if (!outputs) {
+              const retObj = {
+                msg: 'error',
+                result: 'Unable to find best fit UTXO(s). If you have UTXO in transition wait until they are confirmed.',
+              };
+
+              res.end(JSON.stringify(retObj));
+            }
+
             if (outputs &&
                 outputs.length === 2) {
               _change = outputs[1].value - fee;
@@ -277,7 +287,7 @@ module.exports = (api) => {
             if (value > _maxSpend) {
               const retObj = {
                 msg: 'error',
-                result: `Spend value is too large. Max available amount is ${Number((_maxSpend * 0.00000001.toFixed(8)))}`,
+                result: `Spend value is too large. Max available amount is ${Number((_maxSpend * 0.00000001.toFixed(8)))}. If you have UTXO in transition wait until they are confirmed.`,
               };
 
               res.end(JSON.stringify(retObj));
