@@ -55,6 +55,7 @@ const assetChainPorts = {
   MTST3: 56141,
   RFOX: 32269,
   ZEXO: 33970,
+  LABS: 40265,
 };
 
 module.exports = assetChainPorts;

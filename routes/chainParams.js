@@ -280,6 +280,24 @@ const chainParams = {
 			'195.201.20.230',
 		],
 	},
+	LABS: {
+		ac_supply: 350689,
+		ac_reward: '0,0,800000000',
+		ac_decay: '0,100000000,100000000',
+		ac_halving: '129,1',
+		ac_end: '128,10080,0',
+		ac_notarypay: '64,100000000,1000000000',
+		ac_eras: 3,
+		ac_staked: 51,
+		ac_sapling: 1,
+		ac_cc: 101,
+		ac_ccenable: '226,236',
+		ac_cclib: 'labs',
+		addnode: [
+			'80.240.17.222',
+			'195.201.20.230',
+		],
+	},
 };
 
 module.exports = chainParams;
