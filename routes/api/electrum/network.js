@@ -132,12 +132,20 @@ module.exports = (api) => {
   });
 
   api.getServerVersion = (port, ip, proto) => {
-    const ecl = new api.electrumJSCore(
-      port,
-      ip,
-      proto,
-      api.appConfig.spv.socketTimeout
-    );
+    let ecl;
+
+    if (api.appConfig.spv.proxy) {
+      // TODO: protocol version check
+      api.log('use electrum proxy', 'proxy');
+      ecl = api.proxy(null, { ip, port, proto });
+    } else {
+      ecl = new api.electrumJSCore(
+        port,
+        ip,
+        proto,
+        api.appConfig.spv.socketTimeout
+      );
+    }
 
     return new Promise((resolve, reject) => {
       if (api.electrumServersProtocolVersion.hasOwnProperty(`${ip}:${port}:${proto}`) &&
@@ -287,7 +295,21 @@ module.exports = (api) => {
       } else {
         if (api.appConfig.spv.proxy) {
           // TODO: protocol version check
-          return api.proxy(network, customElectrum);
+          api.log('use electrum proxy', 'proxy');
+          let _ecl = api.proxy(network, customElectrum);
+
+          const protocolVersion = await api.getServerVersion(
+            _ecl.port,
+            _ecl.ip,
+            _ecl.proto
+          );
+          if (protocolVersion) {
+            _ecl.protocolVersion = protocolVersion;
+            _ecl.setProtocolVersion(protocolVersion);
+          }
+          api.log(`proxy electrum protocol version ${protocolVersion}`, 'proxy');
+
+          return _ecl;
         } else {
           const electrum = customElectrum ? {
             port: customElectrum.port,

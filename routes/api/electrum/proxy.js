@@ -27,18 +27,26 @@ module.exports = (api) => {
   };*/
   api.proxyActiveCoin = {};
 
-  api.proxy = (network) => {
+  api.proxy = (network, customServer) => {
     api.log('proxy =>', 'spv.proxy');
-    api.log(network, 'spv.proxy');
+    api.log(network, 'spv.proxy.network');
+
+    let _customElectrumServer;
+    let protocolVersion;
 
     if (network) {
       api.proxyActiveCoin = network;
+      _customElectrumServer = api.electrumServers[network].serverList[getRandomIntInclusive(0, api.electrumServers[network].serverList.length - 1)].split(':');
+    }
+
+    if (customServer) {
+      _customElectrumServer = [customServer.ip, customServer.port, customServer.proto];
     }
 
     const _electrumServer = {
-      port: api.electrumCoins[network].server.port || api.electrumServers[network].port,
-      ip: api.electrumCoins[network].server.ip || api.electrumServers[network].address,
-      proto: api.electrumCoins[network].server.proto || api.electrumServers[network].proto,
+      ip: api.electrumCoins[network] && api.electrumCoins[network].server && api.electrumCoins[network].server.ip || api.electrumServers[network] && api.electrumServers[network].address || _customElectrumServer[0],
+      port: api.electrumCoins[network] && api.electrumCoins[network].server && api.electrumCoins[network].server.port || api.electrumServers[network] && api.electrumServers[network].port || _customElectrumServer[1],
+      proto: api.electrumCoins[network] && api.electrumCoins[network].server && api.electrumCoins[network].server.proto || api.electrumServers[network] && api.electrumServers[network].proto || _customElectrumServer[2],
     };
 
     const makeUrl = (arr) => {
@@ -52,10 +60,19 @@ module.exports = (api) => {
         _url.push(`${key}=${arr[key]}`);
       }
 
+      api.log(_url, 'url params');
+
       return _url.join('&');
     };
 
     return {
+      ip: _electrumServer.ip,
+      port: _electrumServer.port,
+      proto: _electrumServer.proto,
+      protocolVersion: null,
+      setProtocolVersion: (version) => {
+        protocolVersion = version;
+      },
       connect: () => {
         api.log('proxy fake connect', 'spv.proxy.conn');
       },
@@ -67,7 +84,7 @@ module.exports = (api) => {
 
         return new Promise((resolve, reject) => {
           const options = {
-            url: `http://${proxyServer.ip}:${proxyServer.port}/api/getbalance?${makeUrl({ address })}`,
+            url: `http://${proxyServer.ip}:${proxyServer.port}/api/getbalance?${makeUrl(Number(protocolVersion) >= 1.2 ? { address, eprotocol: 1.4 } : { address })}`,
             method: 'GET',
           };
 
@@ -98,7 +115,7 @@ module.exports = (api) => {
 
         return new Promise((resolve, reject) => {
           const options = {
-            url: `http://${proxyServer.ip}:${proxyServer.port}/api/listunspent?${makeUrl({ address })}`,
+            url: `http://${proxyServer.ip}:${proxyServer.port}/api/listunspent?${makeUrl(Number(protocolVersion) >= 1.2 ? { address, eprotocol: 1.4 } : { address })}`,
             method: 'GET',
           };
 
@@ -129,7 +146,7 @@ module.exports = (api) => {
 
         return new Promise((resolve, reject) => {
           const options = {
-            url: `http://${proxyServer.ip}:${proxyServer.port}/api/listtransactions?${makeUrl({ address })}`,
+            url: `http://${proxyServer.ip}:${proxyServer.port}/api/listtransactions?${makeUrl(Number(protocolVersion) >= 1.2 ? { address, eprotocol: 1.4 } : { address })}`,
             method: 'GET',
           };
 
@@ -191,7 +208,7 @@ module.exports = (api) => {
 
         return new Promise((resolve, reject) => {
           const options = {
-            url: `http://${proxyServer.ip}:${proxyServer.port}/api/getblockinfo?${makeUrl({ height })}`,
+            url: `http://${proxyServer.ip}:${proxyServer.port}/api/getblockinfo?${makeUrl(Number(protocolVersion) >= 1.2 ? { height, eprotocol: 1.4 } : { height })}`,
             method: 'GET',
           };
 
@@ -269,7 +286,7 @@ module.exports = (api) => {
                 if (_parsedBody) {
                   resolve(_parsedBody.result);
                 }
-                api.log(`proxy blockchainTransactionGet ${txid}`, 'spv.proxy,.gettransaction');
+                api.log(`proxy blockchainTransactionGet ${txid}`, 'spv.proxy.gettransaction');
               } catch (e) {
                 api.log(`parse error proxy blockchainTransactionGet ${txid}`, 'spv.proxy.gettransaction');
               }
@@ -315,7 +332,7 @@ module.exports = (api) => {
 
         return new Promise((resolve, reject) => {
           const options = {
-            url: `http://${proxyServer.ip}:${proxyServer.port}/api/gettransaction?${makeUrl()}`,
+            url: `http://${proxyServer.ip}:${proxyServer.port}/api/server/version?${makeUrl()}`,
             method: 'GET',
           };
 
@@ -346,7 +363,7 @@ module.exports = (api) => {
 
         return new Promise((resolve, reject) => {
           const options = {
-            url: `http://${proxyServer.ip}:${proxyServer.port}/api/pushtx`,
+            url: `http://${proxyServer.ip}:${proxyServer.port}/api/pushtx?${makeUrl()}`,
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
