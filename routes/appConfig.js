@@ -51,6 +51,7 @@ const appConfig = {
     },
     userAgreement: false,
     oldLoginMethod: false,
+    multisigMediator: false,
     // coinControl: false,
     // darkmode: false,
   },
@@ -300,6 +301,12 @@ const appConfig = {
       display: true,
       displayName: 'Direct seed / WIF login',
       info: 'Old login method, pre v0.3.6',
+      type: 'boolean',
+    },
+    multisigMediator: {
+      display: true,
+      displayName: 'Use multi signature mediator service',
+      info: 'Enables a use of 3rd party multi signature mediator service (atomicexplorer.com) to exchange multi signature transactions data (proposals).',
       type: 'boolean',
     },
     /*coinControl: {
