@@ -83,14 +83,12 @@ const appConfig = {
     },
     dev: {
       display: false,
-      initDisplay: true,
       displayName: 'Developer mode',
       info: 'Enable developer mode',
       type: 'boolean',
     },
     debug: {
       display: true,
-      initDisplay: true,
       displayName: 'Debug',
       info: 'Enable debug output',
       type: 'boolean',
@@ -103,13 +101,11 @@ const appConfig = {
     },
     experimentalFeatures: {
       display: false,
-      initDisplay: true,
       displayName: 'Enable advanced features',
       type: 'boolean',
     },
     notifications: {
-      display: true,
-      initDisplay: true,
+      display: false,
       displayName: 'Enable notifications',
       type: 'boolean',
     },
@@ -214,7 +210,6 @@ const appConfig = {
       displayName: 'Native mode',
       dataDir: {
         display: true,
-        initDisplay: true,
         displayName: 'Komodo data directory',
         info: 'The data directory is the location where Komodo data files are stored, including the wallet data file<br/>It must be an already existing folder e.g. /home/user/komodo_data_dir.',
         type: 'folder',
