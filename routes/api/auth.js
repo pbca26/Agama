@@ -1,4 +1,5 @@
 const passwdStrength = require('passwd-strength');
+const { multisig } = require('agama-wallet-lib/src/keys');
 
 module.exports = (api) => {
   /*
@@ -7,9 +8,10 @@ module.exports = (api) => {
    */
   api.get('/auth/status', (req, res, next) => {
     if (api.checkToken(req.query.token)) {
+      const _electrumCoins = JSON.parse(JSON.stringify(api.electrumCoins));
       let retObj;
       let _status = true;
-      const _electrumCoins = JSON.parse(JSON.stringify(api.electrumCoins));
+
       delete _electrumCoins.auth;
 
       if (!api.seed &&
@@ -22,6 +24,13 @@ module.exports = (api) => {
         isPin: api.wallet.fname ? true : false,
         walletType: api.wallet.type ? api.wallet.type : null,
       };
+
+      if (api.wallet.type === 'multisig') {
+        retObj.multisig = {
+          redeemScript: api.wallet.data.sigData.redeemScript,
+          redeemScriptDecoded: multisig.decodeRedeemScript(api.wallet.data.sigData.redeemScript),
+        };
+      }
 
       res.end(JSON.stringify(retObj));
     } else {

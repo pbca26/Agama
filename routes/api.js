@@ -121,7 +121,7 @@ api = require('./api/elections.js')(api);
 api = require('./api/kv.js')(api);
 
 // multisigDB
-api = require('./api/electrum/multisigDB.js')(api);
+//api = require('./api/electrum/multisigDB.js')(api);
 
 // eth
 api.eth = {
