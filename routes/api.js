@@ -87,6 +87,7 @@ api = require('./api/electrum/cache.js')(api);
 api = require('./api/electrum/proxy.js')(api);
 api = require('./api/electrum/servers.js')(api);
 api = require('./api/electrum/csv.js')(api);
+api = require('./api/electrum/electrum-checkpoints.js')(api);
 
 // core
 api = require('./api/addCoinShortcuts.js')(api);
