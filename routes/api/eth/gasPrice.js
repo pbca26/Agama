@@ -1,4 +1,4 @@
-const { ethGasStationRateToWei } = require('agama-wallet-lib/src/eth');
+const { ethGasStationRateToWei } = require('agama-wallet-lib/src/eth/eth');
 const request = require('request');
 
 // TODO: add to atomic, use individual requests only as a fallback

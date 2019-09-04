@@ -13,7 +13,7 @@ const encrypt = session.encrypt.bind(session);
 const decrypt = session.decrypt.bind(session);
 const pinObjSchema = require('./pinSchema');
 const nativePorts = require('../ports');
-const erc20Contracts = require('agama-wallet-lib/src/eth-erc20-contract-id');
+const erc20Contracts = require('agama-wallet-lib/src/eth/eth-erc20-contract-id');
 const modes = [
   'native',
   'spv',

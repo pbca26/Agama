@@ -1,6 +1,6 @@
 const fs = require('fs-extra');
 const nativePorts = require('../ports');
-const erc20Contracts = require('agama-wallet-lib/src/eth-erc20-contract-id');
+const erc20Contracts = require('agama-wallet-lib/src/eth/eth-erc20-contract-id');
 const modeToValueReversed = {
   '0': 'spv',
   '-1': 'native',

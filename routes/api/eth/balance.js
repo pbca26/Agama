@@ -1,7 +1,7 @@
 const ethers = require('ethers');
 const request = require('request');
-const erc20ContractId = require('agama-wallet-lib/src/eth-erc20-contract-id');
-const decimals = require('agama-wallet-lib/src/eth-erc20-decimals');
+const erc20ContractId = require('agama-wallet-lib/src/eth/eth-erc20-contract-id');
+const decimals = require('agama-wallet-lib/src/eth/eth-erc20-decimals');
 
 module.exports = (api) => {  
   api.get('/eth/balance', (req, res, next) => {

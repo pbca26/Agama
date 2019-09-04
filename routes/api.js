@@ -114,14 +114,8 @@ api = require('./api/addressBook.js')(api);
 // elections
 api = require('./api/elections.js')(api);
 
-// explorer
-// api = require('./api/explorer/overview.js')(api);
-
 // kv
 api = require('./api/kv.js')(api);
-
-// multisigDB
-//api = require('./api/electrum/multisigDB.js')(api);
 
 // eth
 api.eth = {
