@@ -1,4 +1,5 @@
 const { getRandomIntInclusive } = require('agama-wallet-lib/src/utils');
+const { spawn } = require('child_process');
 
 module.exports = (api) => {
   api.findCoinName = (network) => {
@@ -9,25 +10,38 @@ module.exports = (api) => {
     }
   }
 
-  api.addElectrumCoin = (coin) => {
+  api.addElectrumCoin = (coin, enableNspv) => {
     coin = coin.toLowerCase();
     const servers = api.electrumServers[coin].serverList;
     // select random server
     let randomServer;
 
-    // pick a random server to communicate with
-    if (servers &&
-        servers.length > 0) {
-      const _randomServerId = getRandomIntInclusive(0, servers.length - 1);
-      const _randomServer = servers[_randomServerId];
-      const _serverDetails = _randomServer.split(':');
+    if (enableNspv &&
+        coin.toUpperCase() === 'KMD') {
+      console.log('KMD start in nspv');
+      
+      //spawn(`${api.komodocliDir}/nspv`, []);
+      randomServer = {
+        ip: 'localhost',
+        port: '7771',
+        proto: 'http',
+      };
+      api.electrumServers[coin].serverList = 'none';
+    } else {
+      // pick a random server to communicate with
+      if (servers &&
+          servers.length > 0) {
+        const _randomServerId = getRandomIntInclusive(0, servers.length - 1);
+        const _randomServer = servers[_randomServerId];
+        const _serverDetails = _randomServer.split(':');
 
-      if (_serverDetails.length === 3) {
-        randomServer = {
-          ip: _serverDetails[0],
-          port: _serverDetails[1],
-          proto: _serverDetails[2],
-        };
+        if (_serverDetails.length === 3) {
+          randomServer = {
+            ip: _serverDetails[0],
+            port: _serverDetails[1],
+            proto: _serverDetails[2],
+          };
+        }
       }
     }
 
@@ -41,6 +55,8 @@ module.exports = (api) => {
       serverList: api.electrumServers[coin].serverList ? api.electrumServers[coin].serverList : 'none',
       txfee: coin === 'btc' ? 'calculated' :api.electrumServers[coin].txfee,
     };
+
+    if (enableNspv) api.electrumCoins[coin].nspv = true;
 
     if (randomServer) {
       api.log(`random ${coin} electrum server ${randomServer.ip + ':' + randomServer.port}`, 'spv.coin');
@@ -85,7 +101,7 @@ module.exports = (api) => {
 
   api.get('/electrum/coins/add', (req, res, next) => {
     if (api.checkToken(req.query.token)) {
-      const result = api.addElectrumCoin(req.query.coin);
+      const result = api.addElectrumCoin(req.query.coin, true/*req.query.nspv*/);
 
       const retObj = {
         msg: 'success',
