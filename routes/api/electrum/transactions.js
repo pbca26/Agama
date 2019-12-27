@@ -7,21 +7,82 @@ const btcnetworks = require('agama-wallet-lib/src/bitcoinjs-networks');
 
 // TODO: add z -> pub, pub -> z flag for zcash forks
 
+// TODO: - nspv parse transactions manually
+//       - nspv pending cache
 module.exports = (api) => {
   api.get('/electrum/listtransactions', (req, res, next) => {
     if (api.checkToken(req.query.token)) {
-      api.listtransactions({
-        network: req.query.network,
-        coin: req.query.coin,
-        address: req.query.address,
-        kv: req.query.kv,
-        maxlength: api.appConfig.spv.listtransactionsMaxLength,
-        full: req.query.full,
-        txid: req.query.txid,
-      })
-      .then((txhistory) => {
-        res.end(JSON.stringify(txhistory));
-      });
+      if (api.electrumCoins[req.query.coin.toLowerCase()].nspv) {
+        // TODO: timestamp -> getinfo hdrheight
+        (async function() {
+          let nspvTxs = [];
+          const nspvGetinfo = await api.nspvRequest(
+            req.query.coin,
+            'getinfo'
+          );
+
+          console.log('nspvGetinfo =>');
+          console.log(nspvGetinfo);
+
+          if (nspvGetinfo &&
+              nspvGetinfo.height) {
+            const nspvTxHistory = await api.nspvRequest(
+              req.query.coin,
+              'listtransactions',
+              [req.query.address]
+            );
+
+            if (nspvTxHistory &&
+                nspvTxHistory.result &&
+                nspvTxHistory.result === 'success') {
+              console.log(nspvTxHistory)
+
+              for (let i = 0; i < nspvTxHistory.txids.length; i++) {
+                nspvTxs.push({
+                  type: Number(nspvTxHistory.txids[i].value) > 0 ? 'received' : 'sent',
+                  amount: Number(nspvTxHistory.txids[i].value),
+                  //fee: Number(Number(_total.inputs - _total.outputs).toFixed(8)),
+                  address: req.query.address,
+                  timestamp: 'unknown',
+                  txid: nspvTxHistory.txids[i].txid || 'unknown',
+                  confirmations: nspvTxHistory.txids[i].height && Number(nspvGetinfo.height) - Number(nspvTxHistory.txids[i].height) || 'unknown',
+                  height: nspvTxHistory.txids[i].height,
+                });
+              }
+              
+              nspvTxs = api.sortTransactions(nspvTxs);
+
+              res.end(JSON.stringify({
+                msg: 'success',
+                result: nspvTxs,
+              }));
+            } else {
+              res.end(JSON.stringify({
+                msg: 'error',
+                result: 'unable to get transactions history',
+              }));
+            }
+          } else {
+            res.end(JSON.stringify({
+              msg: 'error',
+              result: 'unable to get current height',
+            }));
+          }
+        })();
+      } else {
+        api.listtransactions({
+          network: req.query.network,
+          coin: req.query.coin,
+          address: req.query.address,
+          kv: req.query.kv,
+          maxlength: api.appConfig.spv.listtransactionsMaxLength,
+          full: req.query.full,
+          txid: req.query.txid,
+        })
+        .then((txhistory) => {
+          res.end(JSON.stringify(txhistory));
+        });
+      }
     } else {
       const retObj = {
         msg: 'error',
