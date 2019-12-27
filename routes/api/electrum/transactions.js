@@ -47,6 +47,7 @@ module.exports = (api) => {
                   txid: nspvTxHistory.txids[i].txid || 'unknown',
                   confirmations: nspvTxHistory.txids[i].height && Number(nspvGetinfo.height) - Number(nspvTxHistory.txids[i].height) || 'unknown',
                   height: nspvTxHistory.txids[i].height,
+                  dpowSecured: nspvGetinfo.notarization && Number(nspvGetinfo.notarization.notarized_height) >= Number(nspvTxHistory.txids[i].height) ? true : false,
                 });
               }
               
