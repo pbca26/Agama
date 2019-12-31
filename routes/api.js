@@ -41,6 +41,7 @@ api.electrumCoins = {
 };
 api.electrumKeys = {};
 api.electrumCache = {};
+api.nspvProcesses = {};
 
 api.electrumJSCore = require('./electrumjs/electrumjs.core.js');
 api.electrumJSNetworks = require('./electrumjs/electrumjs.networks.js');
@@ -101,6 +102,9 @@ api = require('./api/electrum/proxy.js')(api);
 api = require('./api/electrum/servers.js')(api);
 api = require('./api/electrum/csv.js')(api);
 api = require('./api/electrum/utils.js')(api);
+
+// nspv
+api = require('./api/electrum/nspv.js')(api);
 
 // dex
 /*api = require('./api/dex/coind.js')(api);
