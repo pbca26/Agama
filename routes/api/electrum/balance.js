@@ -2,6 +2,7 @@ const Promise = require('bluebird');
 const { checkTimestamp } = require('agama-wallet-lib/src/time');
 const { pubToElectrumScriptHashHex } = require('agama-wallet-lib/src/keys');
 const btcnetworks = require('agama-wallet-lib/src/bitcoinjs-networks');
+const { toSats } = require('agama-wallet-lib/src/utils');
 const UTXO_1MONTH_THRESHOLD_SECONDS = 2592000;
 
 module.exports = (api) => {
@@ -9,10 +10,80 @@ module.exports = (api) => {
     if (api.checkToken(req.query.token)) {
       async function _getBalance() {
         const network = req.query.network || api.findNetworkObj(req.query.coin);
-        const ecl = await api.ecl(network);
-        const _address = ecl.protocolVersion && ecl.protocolVersion === '1.4' ? pubToElectrumScriptHashHex(req.query.address, btcnetworks[network.toLowerCase()] || btcnetworks.kmd) : req.query.address;
+        let ecl;
+        let _address = req.query.address;
   
         api.log('electrum getbalance =>', 'spv.getbalance');
+
+        // TODO: refactor
+        if (api.electrumCoins[network.toLowerCase()].nspv) {
+          ecl = {
+            connect: () => {
+              console.log('nspv connect');
+            },
+            close: () => {
+              console.log('nspv close');
+            },
+            blockchainAddressGetBalance: (__address) => {
+              return new Promise((resolve, reject) => {
+                api.nspvRequest(
+                  req.query.coin,
+                  'listunspent',
+                  [__address],
+                )
+                .then((nspvTxHistory) => {
+                  if (nspvTxHistory &&
+                      nspvTxHistory.result &&
+                      nspvTxHistory.result === 'success') {
+                    console.log(nspvTxHistory)
+                    resolve({
+                      confirmed: toSats(nspvTxHistory.balance),
+                      unconfirmed: 0,
+                    });
+                    console.log({
+                      confirmed: toSats(nspvTxHistory.balance),
+                      unconfirmed: 0,
+                    })
+                  } else {
+                    resolve('unable to get balance');
+                  }
+                });
+              });
+            },
+            blockchainAddressListunspent: (__address) => {
+              return new Promise((resolve, reject) => {
+                let nspvUtxos = [];
+                
+                api.nspvRequest(
+                  req.query.coin,
+                  'listunspent',
+                  [__address],
+                )
+                .then((nspvListunspent) => {
+                  if (nspvListunspent &&
+                      nspvListunspent.result &&
+                      nspvListunspent.result === 'success') {
+                    for (let i = 0; i < nspvListunspent.utxos.length; i++) {
+                      nspvUtxos.push({
+                        tx_hash: nspvListunspent.utxos[i].txid,
+                        height: nspvListunspent.utxos[i].height,
+                        value: toSats(nspvListunspent.utxos[i].value),
+                        vout: nspvListunspent.utxos[i].vout,
+                      });
+                    }
+
+                    resolve(nspvUtxos);
+                  } else {
+                    resolve('unable to get utxos');
+                  }
+                });
+              });
+            }
+          };
+        } else {
+          ecl = await api.ecl(network);
+          _address = ecl.protocolVersion && ecl.protocolVersion === '1.4' ? pubToElectrumScriptHashHex(req.query.address, btcnetworks[network.toLowerCase()] || btcnetworks.kmd) : req.query.address;
+        }
         
         ecl.connect();
         ecl.blockchainAddressGetBalance(_address)
