@@ -65,27 +65,46 @@ module.exports = (api) => {
   api.electrumGetCurrentBlock = (network) => {
     return new Promise((resolve, reject) => {
       async function _electrumGetCurrentBlock() {
-        const ecl = await api.ecl(network);
+        if (api.electrumCoins[network.toLowerCase()].nspv) {
+          api.nspvRequest(
+            network.toLowerCase(),
+            'getinfo'
+          )
+          .then((nspvGetinfo) => {
+            if (nspvGetinfo &&
+                nspvGetinfo.height) {
+              if (nspvGetinfo.notarization &&
+                  Number(nspvGetinfo.notarization.notarized_height)) {
+                notarizedHeight = nspvGetinfo.notarization.notarized_height;
+              }
+              resolve(nspvGetinfo.height);
+            } else {
+              resolve();
+            }
+          });
+        } else {
+          const ecl = await api.ecl(network);
 
-        ecl.connect();
-        ecl.blockchainHeadersSubscribe()
-        .then((json) => {
-          ecl.close();
+          ecl.connect();
+          ecl.blockchainHeadersSubscribe()
+          .then((json) => {
+            ecl.close();
 
-          api.log('electrum currentblock (electrum >= v1.1) ==>', 'spv.currentblock');
-          api.log(json, 'spv.currentblock');
+            api.log('electrum currentblock (electrum >= v1.1) ==>', 'spv.currentblock');
+            api.log(json, 'spv.currentblock');
 
-          if (json &&
-              json.hasOwnProperty('block_height')) {
-            resolve(json.block_height);
-          } else if (
-            json &&
-            json.hasOwnProperty('height')) {
-            resolve(json.height);  
-          } else {
-            resolve(json);
-          }
-        });
+            if (json &&
+                json.hasOwnProperty('block_height')) {
+              resolve(json.block_height);
+            } else if (
+              json &&
+              json.hasOwnProperty('height')) {
+              resolve(json.height);  
+            } else {
+              resolve(json);
+            }
+          });
+        }
       };
       _electrumGetCurrentBlock();
     });
