@@ -186,30 +186,55 @@ module.exports = (api) => {
       } else {
         api.log(`${network.toUpperCase()} dpow confs spv: ${dpowCoins.indexOf(network.toUpperCase()) > -1 ? true : false}`, 'spv.dpow.confs');
         
-        if (!api.electrumCache[network].tx[txid] ||
-            !api.electrumCache[network].verboseTx[txid] ||
-            (api.electrumCache[network].verboseTx[txid] && api.electrumCache[network].verboseTx[txid].hasOwnProperty('confirmations') && api.electrumCache[network].verboseTx[txid].hasOwnProperty('rawconfirmations') && api.electrumCache[network].verboseTx[txid].confirmations < 2) ||
-            (!api.electrumCache[network].verboseTx[txid].hasOwnProperty('confirmations') || !api.electrumCache[network].verboseTx[txid].hasOwnProperty('rawconfirmations'))) {
-          api.log(`electrum raw input tx ${txid}`, 'spv.cache');
+        if (api.electrumCoins[network.toLowerCase()].nspv) {
+          if (!api.electrumCache[network].tx[txid]) {
+            api.log(`nspv raw input tx ${txid}`, 'spv.cache');
 
-          if (dpowCoins.indexOf(network.toUpperCase()) > -1) {
-            api.log(`${network.toUpperCase()} request dpow data update`, 'spv.dpow.confs');
-          }
-          
-          ecl.blockchainTransactionGet(txid, dpowCoins.indexOf(network.toUpperCase()) > -1 ? true : false)
-          .then((_rawtxJSON) => {
-            if (_rawtxJSON.hasOwnProperty('hex')) {
-              api.electrumCache[network].tx[txid] = _rawtxJSON.hex;
-              api.electrumCache[network].verboseTx[txid] = _rawtxJSON;
-              delete api.electrumCache[network].verboseTx[txid].hex;
-            } else {
-              api.electrumCache[network].tx[txid] = _rawtxJSON;
-            }
+            api.nspvRequest(
+              network.toLowerCase(),
+              'gettransaction',
+              [txid],
+            )
+            .then((nspvGetTx) => {
+              if (nspvGetTx &&
+                  nspvGetTx.hasOwnProperty('hex')) {
+                api.electrumCache[network].tx[txid] = nspvGetTx.hex;
+                resolve(api.electrumCache[network].tx[txid]);
+              } else {
+                api.log(`nspv unable to get raw input tx ${txid}`, 'spv.cache');
+                resolve();
+              }
+            });
+          } else {
+            api.log(`electrum cached raw input tx ${txid}`, 'spv.cache');
             resolve(api.electrumCache[network].tx[txid]);
-          });
+          }
         } else {
-          api.log(`electrum cached raw input tx ${txid}`, 'spv.cache');
-          resolve(api.electrumCache[network].tx[txid]);
+          if (!api.electrumCache[network].tx[txid] ||
+              !api.electrumCache[network].verboseTx[txid] ||
+              (api.electrumCache[network].verboseTx[txid] && api.electrumCache[network].verboseTx[txid].hasOwnProperty('confirmations') && api.electrumCache[network].verboseTx[txid].hasOwnProperty('rawconfirmations') && api.electrumCache[network].verboseTx[txid].confirmations < 2) ||
+              (!api.electrumCache[network].verboseTx[txid].hasOwnProperty('confirmations') || !api.electrumCache[network].verboseTx[txid].hasOwnProperty('rawconfirmations'))) {
+            api.log(`electrum raw input tx ${txid}`, 'spv.cache');
+
+            if (dpowCoins.indexOf(network.toUpperCase()) > -1) {
+              api.log(`${network.toUpperCase()} request dpow data update`, 'spv.dpow.confs');
+            }
+            
+            ecl.blockchainTransactionGet(txid, dpowCoins.indexOf(network.toUpperCase()) > -1 ? true : false)
+            .then((_rawtxJSON) => {
+              if (_rawtxJSON.hasOwnProperty('hex')) {
+                api.electrumCache[network].tx[txid] = _rawtxJSON.hex;
+                api.electrumCache[network].verboseTx[txid] = _rawtxJSON;
+                delete api.electrumCache[network].verboseTx[txid].hex;
+              } else {
+                api.electrumCache[network].tx[txid] = _rawtxJSON;
+              }
+              resolve(api.electrumCache[network].tx[txid]);
+            });
+          } else {
+            api.log(`electrum cached raw input tx ${txid}`, 'spv.cache');
+            resolve(api.electrumCache[network].tx[txid]);
+          }
         }
       }
     });
