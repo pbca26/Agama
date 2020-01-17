@@ -25,17 +25,33 @@ module.exports = (api) => {
   api.electrumGetBlockInfo = (height, network) => {
     return new Promise((resolve, reject) => {
       async function _electrumGetBlockInfo() {
-        const ecl = await api.ecl(network);
+        if (api.electrumCoins[network.toLowerCase()].nspv) {
+          api.nspvRequest(
+            network.toLowerCase(),
+            'getinfo',
+            [height]
+          )
+          .then((nspvGetinfo) => {
+            if (nspvGetinfo &&
+                nspvGetinfo.header) {
+              resolve(nspvGetinfo.header);
+            } else {
+              resolve();
+            }
+          });
+        } else {
+          const ecl = await api.ecl(network);
 
-        ecl.connect();
-        ecl.blockchainBlockGetHeader(height)
-        .then((json) => {
-          ecl.close();
-          api.log('electrum getblockinfo ==>', 'spv.getblockinfo');
-          api.log(json, 'spv.getblockinfo');
+          ecl.connect();
+          ecl.blockchainBlockGetHeader(height)
+          .then((json) => {
+            ecl.close();
+            api.log('electrum getblockinfo ==>', 'spv.getblockinfo');
+            api.log(json, 'spv.getblockinfo');
 
-          resolve(json);
-        });
+            resolve(json);
+          });
+        }
       }
       _electrumGetBlockInfo();
     });
@@ -62,7 +78,7 @@ module.exports = (api) => {
     }
   });
 
-  api.electrumGetCurrentBlock = (network) => {
+  api.electrumGetCurrentBlock = (network, returnNspvReq) => {
     return new Promise((resolve, reject) => {
       async function _electrumGetCurrentBlock() {
         if (api.electrumCoins[network.toLowerCase()].nspv) {
@@ -73,11 +89,11 @@ module.exports = (api) => {
           .then((nspvGetinfo) => {
             if (nspvGetinfo &&
                 nspvGetinfo.height) {
-              if (nspvGetinfo.notarization &&
-                  Number(nspvGetinfo.notarization.notarized_height)) {
-                notarizedHeight = nspvGetinfo.notarization.notarized_height;
+              if (returnNspvReq) {
+                resolve(nspvGetinfo);
+              } else {
+                resolve(nspvGetinfo.height);
               }
-              resolve(nspvGetinfo.height);
             } else {
               resolve();
             }
