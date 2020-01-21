@@ -9,8 +9,6 @@ module.exports = (api) => {
     let _confLocation = chain === 'komodod' ? `${api.komodoDir}/komodo.conf` : `${api.komodoDir}/${chain}/${chain}.conf`;
     _confLocation = chain === 'CHIPS' ? `${api.chipsDir}/chips.conf` : _confLocation;
 
-   
-
     // any coind
     if (chain) {
       if (api.nativeCoindList[chain.toLowerCase()]) {
