@@ -122,6 +122,8 @@ module.exports = (api) => {
 
   api.post('/electrum/logout', (req, res, next) => {
     if (api.checkToken(req.body.token)) {
+      api.stopNSPVDaemon('all');
+
       api.seed = null;
       api.electrumCoins = {
         auth: false,
