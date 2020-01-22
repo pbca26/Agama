@@ -88,7 +88,6 @@ module.exports = (api) => {
       let _coindQuitCmd = _chain && api.appConfig.reservedChains.indexOf(_chain) === -1 ? api.veruscliBin : api.komodocliBin;
       let _arg = [];
 
-
       if (_chain) {
         _arg.push(`-ac_name=${_chain}`);
 
@@ -168,6 +167,8 @@ module.exports = (api) => {
 
         res.end(JSON.stringify(retObj));
       } else if (req.body.mode === 'spv') {
+        api.stopNSPVDaemon(_chain.toLowerCase());
+
         delete api.electrumCoins[_chain.toLowerCase()];
 
         if (Object.keys(api.electrumCoins).length - 1 === 0) {

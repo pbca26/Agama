@@ -24,6 +24,7 @@ const Promise = require('bluebird');
 const arch = require('arch');
 const chainParams = require('./routes/chainParams');
 const { formatBytes } = require('agama-wallet-lib/src/utils');
+const nspvPorts = require('./routes/api/electrum/nspvPorts');
 
 let staticVar = {}; // static shared main -> renderer vars
 
@@ -350,6 +351,7 @@ function createAppCloseWindow() {
 				staticVar.spvFees = _spvFees;
 				staticVar.electrumServers = api.electrumServersFlag;
 				staticVar.chainParams = chainParams;
+				staticVar.nspvPorts = nspvPorts;
 
 				let _global = {
 					appConfig,
@@ -467,6 +469,7 @@ function createAppCloseWindow() {
 						api.writeLog('exiting app...');
 
 						api.quitKomodod(appConfig.native.cliStopTimeout);
+						api.stopNSPVDaemon('all');
 
 						const result = 'Closing daemons: done';
 
