@@ -49,17 +49,18 @@ module.exports = (api) => {
     api.createTx(req, res, next, 'body');
   });
 
+  // TODO: broadcast tx if push=true, skip tx data recalc
   api.createTx = (req, res, next, reqType = 'query') => {
     if (api.checkToken(req[reqType].token)) {
       async function _createTx() {
         // TODO: unconf output(s) error message
         const network = req[reqType].network || api.findNetworkObj(req[reqType].coin);
-        let ecl = await api.ecl(network);
         const outputAddress = req[reqType].address;
         const changeAddress = req[reqType].change;
         const push = req[reqType].push;
         const opreturn = req[reqType].opreturn;
         const btcFee = req[reqType].customFee && Number(req[reqType].customFee) !== 0 ? null : (req[reqType].btcfee ? Number(req[reqType].btcfee) : null);
+        let ecl = api.electrumCoins[network.toLowerCase()].nspv ? {} : await api.ecl(network);
         let fee = req[reqType].customFee && Number(req[reqType].customFee) !== 0 ? Number(req[reqType].customFee) : api.electrumServers[network].txfee;
         let value = Number(req[reqType].value);
         let wif = req[reqType].wif;
@@ -442,66 +443,38 @@ module.exports = (api) => {
                       res.end(JSON.stringify(retObj));
                     } else {
                       async function _pushtx() {
-                        ecl = await api.ecl(network);
-                        ecl.connect();
-                        ecl.blockchainTransactionBroadcast(_rawtx)
-                        .then((txid) => {
-                          ecl.close();
-  
-                          let _rawObj = {
-                            utxoSet: inputs,
-                            change: _change,
-                            changeAdjusted: _change,
-                            totalInterest,
-                            fee,
-                            value,
-                            outputAddress,
-                            changeAddress,
-                            network,
-                            rawtx: _rawtx,
-                            txid,
-                            utxoVerified,
-                            dpowSecured,
-                          };
-  
-                          if (txid &&
-                              JSON.stringify(txid).indexOf('fee not met') > -1) {
-                            _rawObj.txid = JSON.stringify(_rawObj.txid);
-  
-                            const retObj = {
-                              msg: 'error',
-                              result: 'Missing fee',
-                              raw: _rawObj,
+                        if (api.electrumCoins[network.toLowerCase()].nspv) {
+                          api.nspvRequest(
+                            network.toLowerCase(),
+                            'broadcast',
+                            [_rawtx],
+                          )
+                          .then((nspvBroadcast) => {
+                            let _rawObj = {
+                              utxoSet: inputs,
+                              change: _change,
+                              changeAdjusted: _change,
+                              totalInterest,
+                              fee,
+                              value,
+                              outputAddress,
+                              changeAddress,
+                              network,
+                              rawtx: _rawtx,
+                              txid: null,
+                              utxoVerified,
+                              dpowSecured,
                             };
-  
-                            res.end(JSON.stringify(retObj));
-                          } else if (
-                            txid &&
-                            JSON.stringify(txid).indexOf('bad-txns-inputs-spent') > -1
-                          ) {
-                            const retObj = {
-                              msg: 'error',
-                              result: 'Bad transaction inputs spent',
-                              raw: _rawObj,
-                            };
-  
-                            res.end(JSON.stringify(retObj));
-                          } else if (
-                            txid &&
-                            txid.length === 64
-                          ) {
-                            if (JSON.stringify(txid).indexOf('bad-txns-in-belowout') > -1) {
-                              const retObj = {
-                                msg: 'error',
-                                result: 'Bad transaction inputs spent',
-                                raw: _rawObj,
-                              };
-  
-                              res.end(JSON.stringify(retObj));
-                            } else {
+
+                            if (nspvBroadcast &&
+                                nspvBroadcast.result &&
+                                nspvBroadcast.result === 'success' &&
+                                nspvBroadcast.expected === nspvBroadcast.broadcast) {
+                              _rawObj.txid = nspvBroadcast.broadcast;
+
                               api.updatePendingTxCache(
                                 network,
-                                txid,
+                                nspvBroadcast.broadcast,
                                 {
                                   pub: changeAddress,
                                   rawtx: _rawtx,
@@ -514,28 +487,112 @@ module.exports = (api) => {
                               };
   
                               res.end(JSON.stringify(retObj));
+                            } else {
+                              const retObj = {
+                                msg: 'error',
+                                result: 'Unable to broadcast transaction',
+                                raw: _rawObj,
+                              };
+                              res.end(JSON.stringify(retObj));
+                              resolve('unable to get utxos');
                             }
-                          } else if (
-                            txid &&
-                            JSON.stringify(txid).indexOf('bad-txns-in-belowout') > -1
-                          ) {
-                            const retObj = {
-                              msg: 'error',
-                              result: 'Bad transaction inputs spent',
-                              raw: _rawObj,
+                          });
+                        } else {
+                          ecl = await api.ecl(network);
+                          ecl.connect();
+                          ecl.blockchainTransactionBroadcast(_rawtx)
+                          .then((txid) => {
+                            ecl.close();
+    
+                            let _rawObj = {
+                              utxoSet: inputs,
+                              change: _change,
+                              changeAdjusted: _change,
+                              totalInterest,
+                              fee,
+                              value,
+                              outputAddress,
+                              changeAddress,
+                              network,
+                              rawtx: _rawtx,
+                              txid,
+                              utxoVerified,
+                              dpowSecured,
                             };
-  
-                            res.end(JSON.stringify(retObj));
-                          } else {
-                            const retObj = {
-                              msg: 'error',
-                              result: 'Can\'t broadcast transaction',
-                              raw: _rawObj,
-                            };
-  
-                            res.end(JSON.stringify(retObj));
-                          }
-                        });
+    
+                            if (txid &&
+                                JSON.stringify(txid).indexOf('fee not met') > -1) {
+                              _rawObj.txid = JSON.stringify(_rawObj.txid);
+    
+                              const retObj = {
+                                msg: 'error',
+                                result: 'Missing fee',
+                                raw: _rawObj,
+                              };
+    
+                              res.end(JSON.stringify(retObj));
+                            } else if (
+                              txid &&
+                              JSON.stringify(txid).indexOf('bad-txns-inputs-spent') > -1
+                            ) {
+                              const retObj = {
+                                msg: 'error',
+                                result: 'Bad transaction inputs spent',
+                                raw: _rawObj,
+                              };
+    
+                              res.end(JSON.stringify(retObj));
+                            } else if (
+                              txid &&
+                              txid.length === 64
+                            ) {
+                              if (JSON.stringify(txid).indexOf('bad-txns-in-belowout') > -1) {
+                                const retObj = {
+                                  msg: 'error',
+                                  result: 'Bad transaction inputs spent',
+                                  raw: _rawObj,
+                                };
+    
+                                res.end(JSON.stringify(retObj));
+                              } else {
+                                api.updatePendingTxCache(
+                                  network,
+                                  txid,
+                                  {
+                                    pub: changeAddress,
+                                    rawtx: _rawtx,
+                                  },
+                                );
+    
+                                const retObj = {
+                                  msg: 'success',
+                                  result: _rawObj,
+                                };
+    
+                                res.end(JSON.stringify(retObj));
+                              }
+                            } else if (
+                              txid &&
+                              JSON.stringify(txid).indexOf('bad-txns-in-belowout') > -1
+                            ) {
+                              const retObj = {
+                                msg: 'error',
+                                result: 'Bad transaction inputs spent',
+                                raw: _rawObj,
+                              };
+    
+                              res.end(JSON.stringify(retObj));
+                            } else {
+                              const retObj = {
+                                msg: 'error',
+                                result: 'Can\'t broadcast transaction',
+                                raw: _rawObj,
+                              };
+    
+                              res.end(JSON.stringify(retObj));
+                            }
+                          });
+                        }
                       }
                       _pushtx();
                     }
