@@ -42,46 +42,9 @@ module.exports = (api) => {
         const _address = config.address;
         let ecl = {};
         
-        console.log('net ' + network.toLowerCase());
         // TODO: refactor
         if (api.electrumCoins[network.toLowerCase()].nspv) {
-          ecl = {
-            connect: () => {
-              console.log('nspv connect');
-            },
-            close: () => {
-              console.log('nspv close');
-            },
-            blockchainAddressGetHistory: (__address) => {
-              return new Promise((resolve, reject) => {
-                let _nspvTxs = [];
-
-                api.nspvRequest(
-                  network.toLowerCase(),
-                  'listtransactions',
-                  [__address],
-                )
-                .then((nspvTxHistory) => {
-                  if (nspvTxHistory &&
-                      nspvTxHistory.result &&
-                      nspvTxHistory.result === 'success') {
-                    for (let i = 0; i < nspvTxHistory.txids.length; i++) {
-                      _nspvTxs.push({
-                        tx_hash: nspvTxHistory.txids[i].txid,
-                        height: nspvTxHistory.txids[i].height,
-                        value: nspvTxHistory.txids[i].value,
-                      });
-                    }
-
-                    console.log(_nspvTxs)
-                    resolve(_nspvTxs);
-                  } else {
-                    resolve('unable to get transactions history');
-                  }
-                });
-              });
-            },
-          };
+          ecl = api.nspvWrapper(network.toLowerCase());
         } else {
           ecl = await api.ecl(network);
           _address = ecl.protocolVersion && ecl.protocolVersion === '1.4' ? pubToElectrumScriptHashHex(config.address, btcnetworks[network.toLowerCase()] || btcnetworks.kmd) : config.address;

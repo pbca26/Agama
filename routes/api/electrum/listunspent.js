@@ -15,69 +15,7 @@ module.exports = (api) => {
 
     // TODO: refactor
     if (api.electrumCoins[network.toLowerCase()].nspv) {
-      ecl = {
-        connect: () => {
-          console.log('nspv connect');
-        },
-        close: () => {
-          console.log('nspv close');
-        },
-        blockchainAddressGetBalance: (__address) => {
-          return new Promise((resolve, reject) => {
-            api.nspvRequest(
-              network.toLowerCase(),
-              'listunspent',
-              [__address],
-            )
-            .then((nspvTxHistory) => {
-              if (nspvTxHistory &&
-                  nspvTxHistory.result &&
-                  nspvTxHistory.result === 'success') {
-                console.log(nspvTxHistory)
-                resolve({
-                  confirmed: toSats(nspvTxHistory.balance),
-                  unconfirmed: 0,
-                });
-                console.log({
-                  confirmed: toSats(nspvTxHistory.balance),
-                  unconfirmed: 0,
-                })
-              } else {
-                resolve('unable to get balance');
-              }
-            });
-          });
-        },
-        blockchainAddressListunspent: (__address) => {
-          return new Promise((resolve, reject) => {
-            let nspvUtxos = [];
-            
-            api.nspvRequest(
-              network.toLowerCase(),
-              'listunspent',
-              [__address],
-            )
-            .then((nspvListunspent) => {
-              if (nspvListunspent &&
-                  nspvListunspent.result &&
-                  nspvListunspent.result === 'success') {
-                for (let i = 0; i < nspvListunspent.utxos.length; i++) {
-                  nspvUtxos.push({
-                    tx_hash: nspvListunspent.utxos[i].txid,
-                    height: nspvListunspent.utxos[i].height,
-                    value: toSats(nspvListunspent.utxos[i].value),
-                    tx_pos: nspvListunspent.utxos[i].vout,
-                  });
-                }
-
-                resolve(nspvUtxos);
-              } else {
-                resolve('unable to get utxos');
-              }
-            });
-          });
-        },
-      };
+      ecl = api.nspvWrapper(network.toLowerCase());
     } else {
       _address = ecl.protocolVersion && ecl.protocolVersion === '1.4' ? pubToElectrumScriptHashHex(address, btcnetworks[network.toLowerCase()] || btcnetworks.kmd) : address;
     }
