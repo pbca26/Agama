@@ -1,6 +1,7 @@
 const Promise = require('bluebird');
 const request = require('request');
 const nspvPorts = require('./nspvPorts');
+const { toSats } = require('agama-wallet-lib/src/utils');
 
 module.exports = (api) => {
   api.nspvRequest = (coin, method, params) => {
